@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Mobile Heat Safety Tracker",
+    "slug": "mobile-heat-safety-tracker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.coachingcode.mobileheatsafety"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.coachingcode.mobileheatsafety"
+    },
+    "web": {
+      "name": "Mobile Heat Safety Tracker",
+      "shortName": "HeatSafety",
+      "lang": "en"
+    },
+    "plugins": [
+      "expo-document-picker",
+      "expo-sharing",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff",
+          "imageWidth": 200
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "433d6b6f-d7f5-4a71-a4dd-7945bc7c1bc0"
+      }
+    },
+    "owner": "ccdtrds-team"
+  }
+}

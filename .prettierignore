@@ -1,27 +1,11 @@
+# Ignore files for Prettier
+
 # Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
 
 # Build outputs
 dist/
 build/
-*.tgz
-*.tar.gz
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Expo
-.expo/
-dist/
-web-build/
 
 # Logs
 *.log
@@ -43,9 +27,6 @@ coverage/
 *.swp
 *.swo
 *~
-.opencode/
-.specify/
-specs
 
 # OS
 .DS_Store
@@ -63,7 +44,6 @@ test-results/
 # Temporary files
 tmp/
 temp/
-guides/
 
 # Cache
 .cache/
@@ -115,3 +95,12 @@ app.config.json
 
 # Expo web
 web-build/
+
+# Minified files
+*.min.js
+*.min.map
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

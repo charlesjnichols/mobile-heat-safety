@@ -1,3 +1,5 @@
+# Ignore files and directories for Docker builds
+
 # Dependencies
 node_modules/
 npm-debug.log*
@@ -43,9 +45,6 @@ coverage/
 *.swp
 *.swo
 *~
-.opencode/
-.specify/
-specs
 
 # OS
 .DS_Store
@@ -63,7 +62,6 @@ test-results/
 # Temporary files
 tmp/
 temp/
-guides/
 
 # Cache
 .cache/
@@ -115,3 +113,14 @@ app.config.json
 
 # Expo web
 web-build/
+*.ts
+*.tsx
+*.js
+*.jsx
+*.json
+*.md
+*.yml
+*.yaml
+
+# Docker specific
+.dockerignore
