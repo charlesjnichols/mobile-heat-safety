@@ -18,7 +18,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.coachingcode.mobileheatsafety"
+      "package": "mobile.heat.safety.tracker"
     },
     "web": {
       "name": "Mobile Heat Safety Tracker",
