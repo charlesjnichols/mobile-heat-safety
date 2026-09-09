@@ -32,19 +32,22 @@ export const filterPractices = (practices: Practice[], filters: PracticeFilters)
 
   if (filters.dateRange) {
     const { start, end } = filters.dateRange
+    const startTime = start ? Date.parse(start) : Number.NEGATIVE_INFINITY
+    const endTime = end ? Date.parse(end) : Number.POSITIVE_INFINITY
     result = result.filter(practice => {
-      const practiceDate = practice.date
-      return (!start || practiceDate >= start) && (!end || practiceDate <= end)
+      const practiceTime = Date.parse(practice.date)
+      return practiceTime >= startTime && practiceTime <= endTime
     })
   }
 
   if (filters.searchQuery) {
     const query = filters.searchQuery.toLowerCase()
+    const safeLower = (value: string | undefined) => (value ?? '').toLowerCase()
     result = result.filter(
       practice =>
-        practice.location.toLowerCase().includes(query) ||
-        (practice.headCoach ?? practice.coach).toLowerCase().includes(query) ||
-        practice.name.toLowerCase().includes(query)
+        safeLower(practice.location).includes(query) ||
+        safeLower(practice.headCoach ?? practice.coach).includes(query) ||
+        safeLower(practice.name).includes(query)
     )
   }
 

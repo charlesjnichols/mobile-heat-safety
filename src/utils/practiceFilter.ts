@@ -1,22 +1,12 @@
 import { Team, Practice } from '../types';
+import { getHeatRisk, HEAT_THRESHOLDS } from './heatIndex';
 
 // Type definitions for risk levels
 export type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'EXTREME';
 
-// Heat index thresholds (same as in validation schema)
-const HEAT_THRESHOLDS = {
-  LOW: { max: 80, color: '#22c55e' },
-  MODERATE: { max: 90, color: '#eab308' },
-  HIGH: { max: 105, color: '#f97316' },
-  EXTREME: { max: Infinity, color: '#dc2626' },
-} as const;
-
 // Helper function to determine heat index risk level
 export function getHeatIndexRiskLevel(heatIndex: number): RiskLevel {
-  if (heatIndex <= HEAT_THRESHOLDS.LOW.max) return 'LOW';
-  if (heatIndex <= HEAT_THRESHOLDS.MODERATE.max) return 'MODERATE';
-  if (heatIndex <= HEAT_THRESHOLDS.HIGH.max) return 'HIGH';
-  return 'EXTREME';
+  return getHeatRisk(heatIndex);
 }
 
 // Helper function to get heat index color
@@ -50,7 +40,7 @@ export function sortPracticesByDateAscending(practices: Practice[]): Practice[] 
   );
 }
 
-// Filter practices by date range
+// Filter practices by date range (parses once; end-of-range inclusive at day granularity)
 export function filterPracticesByDateRange(
   practices: Practice[], 
   startDate: string, 
@@ -58,6 +48,7 @@ export function filterPracticesByDateRange(
 ): Practice[] {
   const start = new Date(startDate);
   const end = new Date(endDate);
+  end.setHours(23, 59, 59, 999);
   
   return practices.filter(practice => {
     const practiceDate = new Date(practice.date);
@@ -100,21 +91,22 @@ export function getTeamPracticeCount(team: Team, practices: Practice[]): number 
 // Get team's maximum heat index
 export function getTeamMaxHeatIndex(team: Team, practices: Practice[]): number {
   const teamPractices = getTeamPractices(team, practices);
-  if (teamPractices.length === 0) return 0;
-  
-  return Math.max(...teamPractices.flatMap(practice => 
+  const allHeatIndices = teamPractices.flatMap(practice => 
     practice.checklists.map(checklist => checklist.heatIndex)
-  ));
+  );
+  if (allHeatIndices.length === 0) return 0;
+  
+  return Math.max(...allHeatIndices);
 }
 
 // Get team's average heat index
 export function getTeamAverageHeatIndex(team: Team, practices: Practice[]): number {
   const teamPractices = getTeamPractices(team, practices);
-  if (teamPractices.length === 0) return 0;
-  
   const allHeatIndices = teamPractices.flatMap(practice => 
     practice.checklists.map(checklist => checklist.heatIndex)
   );
+  
+  if (allHeatIndices.length === 0) return 0;
   
   const sum = allHeatIndices.reduce((acc, heatIndex) => acc + heatIndex, 0);
   return sum / allHeatIndices.length;
@@ -155,12 +147,18 @@ export function getPracticeChecklistCount(practice: Practice): number {
   return practice.checklists.length;
 }
 
+// Convert an HH:MM time to numeric minutes for reliable chronological comparison.
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(':');
+  return parseInt(hours, 10) * 60 + parseInt(minutes, 10);
+};
+
 // Get practice's earliest checklist time
 export function getPracticeEarliestTime(practice: Practice): string {
   if (practice.checklists.length === 0) return '';
   return practice.checklists
     .map(c => c.time)
-    .sort()
+    .sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
     .shift() || '';
 }
 
@@ -169,7 +167,7 @@ export function getPracticeLatestTime(practice: Practice): string {
   if (practice.checklists.length === 0) return '';
   return practice.checklists
     .map(c => c.time)
-    .sort()
+    .sort((a, b) => timeToMinutes(a) - timeToMinutes(b))
     .pop() || '';
 }
 
@@ -212,11 +210,12 @@ export function getCurrentMonthPractices(practices: Practice[]): Practice[] {
   });
 }
 
-// Get practices for the current week
-export function getCurrentWeekPractices(practices: Practice[]): Practice[] {
+// Get practices for the current week. Week start day is configurable (0 = Sunday, 1 = Monday).
+export function getCurrentWeekPractices(practices: Practice[], weekStart: number = 0): Practice[] {
   const now = new Date();
   const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
+  const dayDiff = (now.getDay() - weekStart + 7) % 7;
+  startOfWeek.setDate(now.getDate() - dayDiff);
   startOfWeek.setHours(0, 0, 0, 0);
   
   const endOfWeek = new Date(startOfWeek);

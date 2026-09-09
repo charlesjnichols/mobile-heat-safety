@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
 } from 'react-native'
 import { APP_CONSTANTS } from '../../types'
+import { PALETTE } from '../../utils/outdoorColors'
 import {
   DateParts,
   buildMonthGrid,
@@ -42,6 +43,17 @@ const DatePickerSheet: React.FC<DatePickerSheetProps> = ({
   const [viewYear, setViewYear] = useState(initial?.year ?? new Date().getFullYear())
   const [viewMonth, setViewMonth] = useState(initial?.month ?? new Date().getMonth() + 1)
   const [selected, setSelected] = useState<DateParts | null>(initial)
+
+  // Re-sync picker state whenever the sheet opens or the initial date changes,
+  // so a previously edited value does not persist into the next open.
+  useEffect(() => {
+    if (visible) {
+      const sync = parseDate(initialDate) ?? parseDate(todayString())
+      setViewYear(sync?.year ?? new Date().getFullYear())
+      setViewMonth(sync?.month ?? new Date().getMonth() + 1)
+      setSelected(sync)
+    }
+  }, [visible, initialDate])
 
   const { cells } = buildMonthGrid(viewYear, viewMonth)
 
@@ -214,7 +226,7 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING.SM,
   },
   modalOverlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: PALETTE.OVERLAY,
     flex: 1,
     justifyContent: 'flex-end',
   },

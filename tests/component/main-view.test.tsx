@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AppProvider, useAppContext } from '../../src/context/AppContext';
 import { Team, Practice } from '../../src/utils/validation';
 import { HeatIndexIndicator } from '../../src/components/common/HeatIndexIndicator';
+import { PALETTE } from '../../src/utils/outdoorColors';
 
 // Mock AsyncStorage (AppProvider loads data directly from it)
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -45,6 +46,7 @@ const mockPractices: Practice[] = [
     sport: 'Soccer',
     contactInfo: 'john@example.com',
     teamId: 'team-1',
+    notes: '',
     checklists: [
       {
         id: 'checklist-1',
@@ -71,6 +73,7 @@ const mockPractices: Practice[] = [
     sport: 'Soccer',
     contactInfo: 'jane@example.com',
     teamId: 'team-2',
+    notes: '',
     checklists: [
       {
         id: 'checklist-2',
@@ -145,7 +148,7 @@ const MockMainView = () => {
           onChangeText={setSearchQuery}
           accessibilityLabel="Search practices"
         />
-        <Ionicons name="search" size={20} color="#6b7280" style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={PALETTE.TEXT_SECONDARY} style={styles.searchIcon} />
       </View>
 
       {/* Team Filter */}
@@ -234,7 +237,7 @@ const MockMainView = () => {
         keyExtractor={item => item.id}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={48} color="#9ca3af" />
+            <Ionicons name="calendar-outline" size={48} color={PALETTE.TEXT_MUTED} />
             <Text style={styles.emptyText}>No practices found</Text>
           </View>
         }
@@ -245,158 +248,158 @@ const MockMainView = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
   addButton: {
-    width: 44,
-    height: 44,
+    alignItems: 'center',
+    backgroundColor: PALETTE.BLUE_500,
     borderRadius: 22,
-    backgroundColor: '#3b82f6',
+    height: 44,
     justifyContent: 'center',
-    alignItems: 'center',
+    width: 44,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    margin: 16,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  searchInput: {
+  container: {
+    backgroundColor: PALETTE.GRAY_50,
     flex: 1,
-    fontSize: 16,
-    color: '#374151',
   },
-  searchIcon: {
-    marginLeft: 8,
+  emptyContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptyText: {
+    color: PALETTE.TEXT_SECONDARY,
+    fontSize: 16,
+    marginTop: 8,
+    textAlign: 'center',
   },
   filterContainer: {
-    marginHorizontal: 16,
     marginBottom: 16,
+    marginHorizontal: 16,
   },
   filterLabel: {
+    color: PALETTE.TEXT_STRONG,
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
     marginBottom: 8,
   },
-  teamFilter: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  teamButton: {
-    minHeight: 44,
-    minWidth: 44,
-    flexDirection: 'row',
+  header: {
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
+    backgroundColor: PALETTE.WHITE,
+    borderBottomColor: PALETTE.NEUTRAL_200,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: 16,
   },
-  teamButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
-  },
-  teamButtonText: {
-    fontSize: 14,
-    color: '#374151',
-    marginLeft: 6,
-  },
-  teamButtonTextActive: {
-    color: 'white',
-  },
-  teamColor: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+  headerTitle: {
+    color: PALETTE.TEXT_DEFAULT,
+    fontSize: 24,
+    fontWeight: 'bold',
   },
   practiceCard: {
-    backgroundColor: 'white',
+    backgroundColor: PALETTE.WHITE,
     borderRadius: 12,
-    marginHorizontal: 16,
+    elevation: 2,
     marginBottom: 12,
+    marginHorizontal: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
   },
-  practiceHeader: {
+  practiceCoach: {
+    color: PALETTE.TEXT_SECONDARY,
+    fontSize: 14,
+  },
+  practiceDate: {
+    alignItems: 'flex-start',
+  },
+  practiceDateText: {
+    color: PALETTE.TEXT_SECONDARY,
+    fontSize: 14,
+  },
+  practiceDetails: {
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  practiceHeader: {
     alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 12,
   },
   practiceInfo: {
     flex: 1,
   },
   practiceLocation: {
+    color: PALETTE.TEXT_DEFAULT,
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
     marginBottom: 4,
   },
-  practiceCoach: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  practiceDate: {
-    alignItems: 'flex-start',
-  },
-  practiceDateText: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  practiceDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   practiceStats: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
   },
   practiceStatsText: {
+    color: PALETTE.TEXT_SECONDARY,
     fontSize: 14,
-    color: '#6b7280',
     marginRight: 8,
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  searchContainer: {
     alignItems: 'center',
-    padding: 40,
+    backgroundColor: PALETTE.WHITE,
+    borderColor: PALETTE.NEUTRAL_200,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    margin: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  emptyText: {
+  searchIcon: {
+    marginLeft: 8,
+  },
+  searchInput: {
+    color: PALETTE.TEXT_STRONG,
+    flex: 1,
     fontSize: 16,
-    color: '#6b7280',
-    marginTop: 8,
-    textAlign: 'center',
+  },
+  teamButton: {
+    alignItems: 'center',
+    backgroundColor: PALETTE.NEUTRAL_100,
+    borderColor: PALETTE.NEUTRAL_200,
+    borderRadius: 20,
+    borderWidth: 1,
+    flexDirection: 'row',
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  teamButtonActive: {
+    backgroundColor: PALETTE.BLUE_500,
+    borderColor: PALETTE.BLUE_500,
+  },
+  teamButtonText: {
+    color: PALETTE.TEXT_STRONG,
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  teamButtonTextActive: {
+    color: PALETTE.WHITE,
+  },
+  teamColor: {
+    borderRadius: 6,
+    height: 12,
+    width: 12,
+  },
+  teamFilter: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
 });
 

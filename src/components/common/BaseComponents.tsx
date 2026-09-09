@@ -1,6 +1,34 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ViewStyle, TextStyle, ActivityIndicator, FlatList, TextInput, ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { PALETTE } from '../../utils/outdoorColors';
+
+// Centralized color constants for the base component set.
+const COLORS = {
+  primary: PALETTE.BLUE_500,
+  primaryBorder: PALETTE.BLUE_500,
+  secondaryBg: PALETTE.NEUTRAL_100,
+  secondaryBorder: PALETTE.NEUTRAL_300,
+  secondaryText: PALETTE.NEUTRAL_700,
+  danger: PALETTE.RED_500,
+  dangerBorder: PALETTE.RED_500,
+  success: PALETTE.EMERALD_500,
+  successBorder: PALETTE.EMERALD_500,
+  white: PALETTE.WHITE,
+  disabledBg: PALETTE.NEUTRAL_100,
+  disabledBorder: PALETTE.NEUTRAL_300,
+  text: PALETTE.NEUTRAL_700,
+  inputBg: PALETTE.WHITE,
+  inputBorder: PALETTE.NEUTRAL_300,
+  disabledInputBg: PALETTE.NEUTRAL_50,
+  disabledInputText: PALETTE.NEUTRAL_400,
+  label: PALETTE.NEUTRAL_700,
+  cardBg: PALETTE.WHITE,
+  cardTitle: PALETTE.NEUTRAL_800,
+  placeholder: PALETTE.NEUTRAL_400,
+  emptyText: PALETTE.NEUTRAL_500,
+  emptyIcon: PALETTE.NEUTRAL_400,
+} as const;
 
 // Base mobile component with accessibility support
 
@@ -32,20 +60,20 @@ export const BaseButton: React.FC<BaseButtonProps> = ({
   const getVariantStyles = () => {
     const baseStyles = {
       primary: {
-        backgroundColor: '#3b82f6',
-        borderColor: '#3b82f6',
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primaryBorder,
       },
       secondary: {
-        backgroundColor: '#f3f4f6',
-        borderColor: '#d1d5db',
+        backgroundColor: COLORS.secondaryBg,
+        borderColor: COLORS.secondaryBorder,
       },
       danger: {
-        backgroundColor: '#ef4444',
-        borderColor: '#ef4444',
+        backgroundColor: COLORS.danger,
+        borderColor: COLORS.dangerBorder,
       },
       success: {
-        backgroundColor: '#10b981',
-        borderColor: '#10b981',
+        backgroundColor: COLORS.success,
+        borderColor: COLORS.successBorder,
       },
     };
 
@@ -84,9 +112,11 @@ export const BaseButton: React.FC<BaseButtonProps> = ({
 
   const textStyles = [
     styles.buttonText,
-    { color: variant === 'secondary' ? '#374151' : '#ffffff' },
+    { color: variant === 'secondary' ? COLORS.secondaryText : COLORS.white },
     textStyle,
   ];
+
+  const isSecondary = variant === 'secondary';
 
   return (
     <TouchableOpacity
@@ -95,18 +125,19 @@ export const BaseButton: React.FC<BaseButtonProps> = ({
       disabled={disabled || loading}
       accessibilityRole="button"
       accessibilityLabel={title}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
       accessibilityHint={disabled ? 'Button is disabled' : undefined}
       testID={testID}
     >
       {loading ? (
-        <ActivityIndicator color="#ffffff" size="small" />
+        <ActivityIndicator color={isSecondary ? COLORS.secondaryText : COLORS.white} size="small" />
       ) : (
         <>
           {icon && (
             <Ionicons
               name={icon}
               size={getSizeStyles().fontSize - 4}
-              color={variant === 'secondary' ? '#374151' : '#ffffff'}
+              color={isSecondary ? COLORS.secondaryText : COLORS.white}
               style={styles.buttonIcon}
             />
           )}
@@ -152,6 +183,7 @@ export const BaseInput: React.FC<BaseInputProps> = ({
     styles.baseInput,
     multiline ? styles.multilineInput : undefined,
     error ? styles.errorInput : undefined,
+    error ? styles.inputWithErrorIcon : undefined,
     disabled ? styles.disabledInput : undefined,
     inputStyle,
   ];
@@ -170,7 +202,7 @@ export const BaseInput: React.FC<BaseInputProps> = ({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor={COLORS.placeholder}
           editable={!disabled}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
@@ -184,7 +216,7 @@ export const BaseInput: React.FC<BaseInputProps> = ({
           <Ionicons
             name="alert-circle"
             size={20}
-            color="#ef4444"
+            color={COLORS.danger}
             style={styles.errorIcon}
           />
         )}
@@ -252,7 +284,7 @@ interface LoadingSpinnerProps {
 
 export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   size = 'medium',
-  color = '#3b82f6',
+  color = COLORS.primary,
   testID,
 }) => {
   const sizeMap = {
@@ -279,7 +311,7 @@ export const EmptyList: React.FC<EmptyListProps> = ({
 }) => {
   return (
     <View style={styles.emptyList} testID={testID}>
-      <Ionicons name="file-tray-outline" size={48} color="#9ca3af" />
+      <Ionicons name="file-tray-outline" size={48} color={COLORS.emptyIcon} />
       <Text style={styles.emptyListText}>{message}</Text>
     </View>
   );
@@ -288,37 +320,37 @@ export const EmptyList: React.FC<EmptyListProps> = ({
 // Styles
 const styles = StyleSheet.create({
   baseButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    minWidth: 88, // Minimum touch target size
-    height: 44,
-    paddingHorizontal: 20,
     elevation: 2,
-    shadowColor: '#000',
+    flexDirection: 'row',
+    height: 44,
+    justifyContent: 'center',
+    minWidth: 88, // Minimum touch target size
+    paddingHorizontal: 20,
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   baseCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: COLORS.cardBg,
     borderRadius: 12,
     elevation: 2,
     marginVertical: 8,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   baseInput: {
-    backgroundColor: '#ffffff',
-    borderColor: '#d1d5db',
+    backgroundColor: COLORS.inputBg,
+    borderColor: COLORS.inputBorder,
     borderRadius: 8,
     borderWidth: 1,
-    color: '#374151',
+    color: COLORS.text,
     flex: 1,
     fontSize: 16,
     height: 44,
@@ -331,32 +363,32 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   buttonText: {
-    color: '#ffffff',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '500',
     textAlign: 'center',
   },
   cardTitle: {
-    color: '#1f2937',
+    color: COLORS.cardTitle,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
   },
   disabledButton: {
-    backgroundColor: '#f3f4f6',
-    borderColor: '#d1d5db',
+    backgroundColor: COLORS.disabledBg,
+    borderColor: COLORS.disabledBorder,
     opacity: 0.6,
   },
   disabledInput: {
-    backgroundColor: '#f9fafb',
-    color: '#9ca3af',
+    backgroundColor: COLORS.disabledInputBg,
+    color: COLORS.disabledInputText,
   },
   emptyList: {
     alignItems: 'center',
     padding: 40,
   },
   emptyListText: {
-    color: '#6b7280',
+    color: COLORS.emptyText,
     fontSize: 16,
     marginTop: 8,
     textAlign: 'center',
@@ -366,10 +398,10 @@ const styles = StyleSheet.create({
     right: 12,
   },
   errorInput: {
-    borderColor: '#ef4444',
+    borderColor: COLORS.danger,
   },
   errorText: {
-    color: '#ef4444',
+    color: COLORS.danger,
     fontSize: 12,
     marginTop: 4,
   },
@@ -377,10 +409,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   inputLabel: {
-    color: '#374151',
+    color: COLORS.label,
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 4,
+  },
+  inputWithErrorIcon: {
+    paddingRight: 40,
   },
   inputWrapper: {
     alignItems: 'center',

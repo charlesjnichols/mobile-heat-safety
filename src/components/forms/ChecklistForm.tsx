@@ -21,8 +21,10 @@ import { calculateHeatIndex, getRiskLevel, getHeatIndexColor } from '../../utils
 import { HapticFeedback } from '../../utils/hapticFeedback';
 import { HeatIndexIndicator } from '../common/HeatIndexIndicator';
 import { APP_CONSTANTS } from '../../types';
+import { generateId } from '../../utils/teamManagement';
 import TimePickerSheet from './TimePickerSheet';
 import { formatTime12 } from '../../utils/dateTime';
+import { PALETTE } from '../../utils/outdoorColors';
 
 const { COLORS, SPACING, FONT_SIZES } = APP_CONSTANTS;
 
@@ -98,6 +100,10 @@ const ChecklistForm: React.FC<ChecklistFormProps> = ({ route }) => {
     if (tempValid && humidityValid) {
       const heatIndex = calculateHeatIndex(temp, humidity);
       setFormData(prev => ({ ...prev, heatIndex }));
+    } else {
+      // Reset the heat index when inputs are invalid/empty so a stale value is
+      // never carried forward.
+      setFormData(prev => ({ ...prev, heatIndex: 0 }));
     }
   }, [formData.temperature, formData.humidity]);
 
@@ -107,17 +113,17 @@ const ChecklistForm: React.FC<ChecklistFormProps> = ({ route }) => {
   };
 
   const handleTimeChange = (time: string) => {
-    setFormData({ ...formData, time });
+    setFormData(prev => ({ ...prev, time }));
     setShowTimePicker(false);
   };
 
   // Handle input changes
   const handleInputChange = (field: string, value: string) => {
-    setFormData({ ...formData, [field]: value });
-    
+    setFormData(prev => ({ ...prev, [field]: value }));
+
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors({ ...errors, [field]: '' });
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
 
     // Real-time validation for temperature and humidity
@@ -125,15 +131,15 @@ const ChecklistForm: React.FC<ChecklistFormProps> = ({ route }) => {
       const numValue = parseFloat(value);
       if (!isNaN(numValue)) {
         if (field === 'temperature' && (numValue < 60 || numValue > 130)) {
-          setErrors({
-            ...errors,
+          setErrors(prev => ({
+            ...prev,
             [field]: numValue < 60 ? 'Temperature must be at least 60°F' : 'Temperature must be at most 130°F'
-          });
+          }));
         } else if (field === 'humidity' && (numValue < 0 || numValue > 100)) {
-          setErrors({
-            ...errors,
+          setErrors(prev => ({
+            ...prev,
             [field]: numValue < 0 ? 'Humidity must be at least 0%' : 'Humidity must be at most 100%'
-          });
+          }));
         }
       }
     }
@@ -141,7 +147,7 @@ const ChecklistForm: React.FC<ChecklistFormProps> = ({ route }) => {
 
   // Handle action taken selection
   const handleActionSelect = (action: ActionTaken) => {
-    setFormData({ ...formData, actionTaken: action });
+    setFormData(prev => ({ ...prev, actionTaken: action }));
     setShowActionModal(false);
     HapticFeedback.light();
   };
@@ -177,10 +183,7 @@ const ChecklistForm: React.FC<ChecklistFormProps> = ({ route }) => {
 
   // Save checklist
   const saveChecklist = async () => {
-    console.log('[ChecklistForm.saveChecklist] called. practiceId=', practiceId, 'checklistId=', checklistId, 'isEdit=', isEdit, 'practice=', practice ? practice.id : null, 'formData=', JSON.stringify(formData));
-
     const formValid = validateForm();
-    console.log('[ChecklistForm.saveChecklist] validateForm=', formValid, 'errors=', JSON.stringify(errors), 'practiceLoaded=', !!practice);
 
     if (!formValid || !practice) {
       HapticFeedback.error();
@@ -192,7 +195,7 @@ const ChecklistForm: React.FC<ChecklistFormProps> = ({ route }) => {
 
       // Prepare checklist data
       const checklistData: Checklist = {
-        id: checklistId || `checklist-${Date.now()}`,
+        id: checklistId || `checklist-${generateId()}`,
         practiceId: practice.id,
         time: formData.time,
         temperature: parseFloat(formData.temperature),
@@ -558,7 +561,7 @@ const styles = StyleSheet.create({
     maxHeight: '60%',
   },
   modalOverlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: PALETTE.OVERLAY,
     flex: 1,
     justifyContent: 'flex-end',
   },

@@ -16,6 +16,7 @@ const makePractice = (overrides: Partial<Practice> = {}): Practice => ({
   sport: 'Soccer',
   contactInfo: 'coach@example.com',
   teamId: 'team-1',
+  notes: '',
   checklists: [],
   createdAt: '2026-09-02T10:00:00Z',
   updatedAt: '2026-09-02T10:00:00Z',
@@ -25,11 +26,13 @@ const makePractice = (overrides: Partial<Practice> = {}): Practice => ({
 describe('Team management utilities', () => {
   describe('generateTeamId', () => {
     it('prefixes with "team-"', () => {
-      expect(generateTeamId(12345)).toBe('team-12345')
+      expect(generateTeamId()).toMatch(/^team-.+/)
     })
 
-    it('is deterministic for a given timestamp', () => {
-      expect(generateTeamId(100)).toBe(generateTeamId(100))
+    it('is unique even when called within the same millisecond', () => {
+      const first = generateTeamId()
+      const second = generateTeamId()
+      expect(first).not.toBe(second)
     })
   })
 

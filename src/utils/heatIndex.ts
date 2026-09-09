@@ -24,11 +24,23 @@ export interface HeatIndexResult {
 }
 
 // Risk level thresholds and colors
-const RISK_THRESHOLDS = {
-  LOW: { max: 80, color: '#22c55e' }, // Green
-  MODERATE: { max: 90, color: '#eab308' }, // Yellow  
+export const HEAT_THRESHOLDS = {
+  LOW: { max: 79, color: '#22c55e' }, // Green (heat index below 80)
+  MODERATE: { max: 90, color: '#eab308' }, // Yellow
   HIGH: { max: 105, color: '#f97316' }, // Orange
   EXTREME: { max: Infinity, color: '#dc2626' }, // Red
+} as const;
+
+/**
+ * Determine the heat risk level for a given heat index value.
+ * Shared by HeatIndexIndicator, practiceFilter, and ColorCode to avoid
+ * duplicating the 80/90/105 threshold logic.
+ */
+export const getHeatRisk = (value: number): RiskLevel => {
+  if (value <= HEAT_THRESHOLDS.LOW.max) return 'LOW';
+  if (value <= HEAT_THRESHOLDS.MODERATE.max) return 'MODERATE';
+  if (value <= HEAT_THRESHOLDS.HIGH.max) return 'HIGH';
+  return 'EXTREME';
 };
 
 // Temperature and humidity validation bounds
@@ -45,8 +57,10 @@ const VALIDATION_BOUNDS = {
  * @throws Error if inputs are out of valid range
  */
 export const calculateHeatIndex = (temperature: number, humidity: number): number => {
-  // Input validation
+  // Input validation — reject non-finite values so NaN/Infinity never propagate
   if (
+    !Number.isFinite(temperature) ||
+    !Number.isFinite(humidity) ||
     temperature < VALIDATION_BOUNDS.TEMPERATURE.min ||
     temperature > VALIDATION_BOUNDS.TEMPERATURE.max ||
     humidity < VALIDATION_BOUNDS.HUMIDITY.min ||
@@ -61,8 +75,8 @@ export const calculateHeatIndex = (temperature: number, humidity: number): numbe
   // NWS polynomial formula implementation
   const T = temperature;
   const RH = humidity;
-  
-  const heatIndex = 
+
+  let heatIndex =
     -42.379 +
     2.04901523 * T +
     10.14333127 * RH -
@@ -72,6 +86,14 @@ export const calculateHeatIndex = (temperature: number, humidity: number): numbe
     0.00122874 * T * T * RH +
     0.00085282 * T * RH * RH -
     0.00000199 * T * T * RH * RH;
+
+  // Apply the two NWS corrective adjustments that improve accuracy at the
+  // temperature/humidity extremes.
+  if (RH < 13 && T >= 80 && T <= 112) {
+    heatIndex -= ((13 - RH) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
+  } else if (RH > 85 && T >= 80 && T <= 87) {
+    heatIndex += ((RH - 85) / 10) * ((87 - T) / 5);
+  }
 
   // The Rothfusz regression is only calibrated for warm/humid conditions and
   // can return values below the ambient temperature outside that range.
@@ -89,15 +111,7 @@ export const calculateHeatIndex = (temperature: number, humidity: number): numbe
  * @returns Risk level
  */
 export const getRiskLevel = (heatIndex: number): RiskLevel => {
-  if (heatIndex <= RISK_THRESHOLDS.LOW.max) {
-    return 'LOW';
-  } else if (heatIndex <= RISK_THRESHOLDS.MODERATE.max) {
-    return 'MODERATE';
-  } else if (heatIndex <= RISK_THRESHOLDS.HIGH.max) {
-    return 'HIGH';
-  } else {
-    return 'EXTREME';
-  }
+  return getHeatRisk(heatIndex);
 };
 
 /**
@@ -107,7 +121,7 @@ export const getRiskLevel = (heatIndex: number): RiskLevel => {
  */
 export const getHeatIndexColor = (heatIndex: number): string => {
   const riskLevel = getRiskLevel(heatIndex);
-  return RISK_THRESHOLDS[riskLevel].color;
+  return HEAT_THRESHOLDS[riskLevel].color;
 };
 
 /**

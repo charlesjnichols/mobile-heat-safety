@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { PALETTE } from '../utils/outdoorColors';
 
 // Lazily load expo-haptics to avoid issues on web/unsupported platforms
 type HapticsModule = typeof import('expo-haptics');
@@ -9,7 +10,7 @@ let hapticsModule: HapticsModule | null = null;
 const getHaptics = (): HapticsModule | null => {
   if (hapticsModule) return hapticsModule;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     hapticsModule = require('expo-haptics') as HapticsModule;
     return hapticsModule;
   } catch {
@@ -21,7 +22,9 @@ const triggerImpact = (style: 'Light' | 'Medium' | 'Heavy'): void => {
   try {
     const haptics = getHaptics();
     if (haptics) {
-      haptics.impactAsync(haptics.ImpactFeedbackStyle[style]);
+      void haptics.impactAsync(haptics.ImpactFeedbackStyle[style]).catch(() => {
+        // Ignore haptic failures (unsupported platform, etc.)
+      });
     }
   } catch {
     console.log('Haptic feedback not available');
@@ -32,10 +35,42 @@ const triggerNotification = (type: 'Success' | 'Warning' | 'Error'): void => {
   try {
     const haptics = getHaptics();
     if (haptics) {
-      haptics.notificationAsync(haptics.NotificationFeedbackType[type]);
+      void haptics.notificationAsync(haptics.NotificationFeedbackType[type]).catch(() => {
+        // Ignore haptic failures (unsupported platform, etc.)
+      });
     }
   } catch {
     console.log('Haptic feedback not available');
+  }
+};
+
+/**
+ * Map a HapticType to the underlying haptic call. Used by the buttons/hooks
+ * below so the switch is defined in exactly one place.
+ */
+const triggerHaptic = (type: HapticType): void => {
+  switch (type) {
+    case 'light':
+      HapticFeedback.light();
+      break;
+    case 'medium':
+      HapticFeedback.medium();
+      break;
+    case 'heavy':
+      HapticFeedback.heavy();
+      break;
+    case 'success':
+      HapticFeedback.success();
+      break;
+    case 'warning':
+      HapticFeedback.warning();
+      break;
+    case 'error':
+      HapticFeedback.error();
+      break;
+    case 'selection':
+      HapticFeedback.selection();
+      break;
   }
 };
 
@@ -116,30 +151,7 @@ export const HapticButton: React.FC<HapticButtonProps> = ({
 }) => {
   const handlePress = () => {
     if (!disabled) {
-      // Trigger haptic feedback
-      switch (hapticType) {
-        case 'light':
-          HapticFeedback.light();
-          break;
-        case 'medium':
-          HapticFeedback.medium();
-          break;
-        case 'heavy':
-          HapticFeedback.heavy();
-          break;
-        case 'success':
-          HapticFeedback.success();
-          break;
-        case 'warning':
-          HapticFeedback.warning();
-          break;
-        case 'error':
-          HapticFeedback.error();
-          break;
-        case 'selection':
-          HapticFeedback.selection();
-          break;
-      }
+      triggerHaptic(hapticType);
       
       onPress();
     }
@@ -184,41 +196,18 @@ interface HapticIconButtonProps {
 export const HapticIconButton: React.FC<HapticIconButtonProps> = ({
   icon,
   size = 24,
-  color = '#ffffff',
+  color = PALETTE.WHITE,
   onPress,
   hapticType = 'light',
   style,
   disabled = false,
   accessibilityLabel,
   testID,
-  backgroundColor = '#3b82f6',
+  backgroundColor = PALETTE.BLUE_500,
 }) => {
   const handlePress = () => {
     if (!disabled) {
-      // Trigger haptic feedback
-      switch (hapticType) {
-        case 'light':
-          HapticFeedback.light();
-          break;
-        case 'medium':
-          HapticFeedback.medium();
-          break;
-        case 'heavy':
-          HapticFeedback.heavy();
-          break;
-        case 'success':
-          HapticFeedback.success();
-          break;
-        case 'warning':
-          HapticFeedback.warning();
-          break;
-        case 'error':
-          HapticFeedback.error();
-          break;
-        case 'selection':
-          HapticFeedback.selection();
-          break;
-      }
+      triggerHaptic(hapticType);
       
       onPress();
     }
@@ -269,30 +258,7 @@ export const HapticTouchable: React.FC<HapticTouchableProps> = ({
 }) => {
   const handlePress = () => {
     if (!disabled) {
-      // Trigger haptic feedback
-      switch (hapticType) {
-        case 'light':
-          HapticFeedback.light();
-          break;
-        case 'medium':
-          HapticFeedback.medium();
-          break;
-        case 'heavy':
-          HapticFeedback.heavy();
-          break;
-        case 'success':
-          HapticFeedback.success();
-          break;
-        case 'warning':
-          HapticFeedback.warning();
-          break;
-        case 'error':
-          HapticFeedback.error();
-          break;
-        case 'selection':
-          HapticFeedback.selection();
-          break;
-      }
+      triggerHaptic(hapticType);
       
       onPress();
     }
@@ -316,33 +282,11 @@ export const HapticTouchable: React.FC<HapticTouchableProps> = ({
 
 // Hook for haptic feedback
 export const useHapticFeedback = (type: HapticType = 'light') => {
-  const triggerHaptic = React.useCallback(() => {
-    switch (type) {
-      case 'light':
-        HapticFeedback.light();
-        break;
-      case 'medium':
-        HapticFeedback.medium();
-        break;
-      case 'heavy':
-        HapticFeedback.heavy();
-        break;
-      case 'success':
-        HapticFeedback.success();
-        break;
-      case 'warning':
-        HapticFeedback.warning();
-        break;
-      case 'error':
-        HapticFeedback.error();
-        break;
-      case 'selection':
-        HapticFeedback.selection();
-        break;
-    }
+  const triggerHapticForType = React.useCallback(() => {
+    triggerHaptic(type);
   }, [type]);
 
-  return triggerHaptic;
+  return triggerHapticForType;
 };
 
 // Custom hook for haptic selection feedback
@@ -372,7 +316,10 @@ export const HapticProvider: React.FC<HapticProviderProps> = ({
   defaultType = 'light',
   enabled = true,
 }) => {
-  // Global haptic context could be added here if needed
+  // No-op: haptics are triggered directly via HapticFeedback/useHapticFeedback.
+  // This provider is kept for API compatibility; it does not gate haptics.
+  void defaultType;
+  void enabled;
   return <>{children}</>;
 };
 
@@ -380,7 +327,7 @@ export const HapticProvider: React.FC<HapticProviderProps> = ({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: PALETTE.BLUE_500,
     borderRadius: 8,
     elevation: 2,
     justifyContent: 'center',
@@ -388,17 +335,17 @@ const styles = StyleSheet.create({
     minWidth: 88,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height:2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   buttonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: PALETTE.NEUTRAL_400,
     opacity: 0.6,
   },
   buttonText: {
-    color: '#ffffff',
+    color: PALETTE.WHITE,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
@@ -409,7 +356,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     height: 44,
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -419,7 +366,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   textDisabled: {
-    color: '#ffffff',
+    color: PALETTE.WHITE,
     opacity: 0.8,
   },
   touchableDisabled: {

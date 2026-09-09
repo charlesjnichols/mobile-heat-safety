@@ -1,11 +1,13 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
+  SectionList,
   TouchableOpacity,
   StyleSheet,
   ViewStyle,
+  ListRenderItem,
+  SectionListData,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppContext } from '../../context/AppContext';
@@ -22,6 +24,8 @@ import {
   formatRelativeTime,
   createChronologicalPracticeSections,
 } from '../../utils/mobileDateUtils';
+import { HapticFeedback } from '../../utils/hapticFeedback';
+import { PALETTE } from '../../utils/outdoorColors';
 
 // Touch target size constants (minimum 44x44 points for accessibility)
 const MIN_TOUCH_TARGET = 44;
@@ -41,7 +45,7 @@ interface TouchFriendlyPracticeListProps {
   onTeamFilter?: (teamId: string) => void;
   showTeamColors?: boolean;
   variant?: 'list' | 'card' | 'compact';
-  grouping?: 'chronological' | 'by-team' | 'flat';
+  grouping?: 'chronological' | 'flat';
   enableHapticFeedback?: boolean;
   style?: ViewStyle;
   contentStyle?: ViewStyle;
@@ -73,9 +77,6 @@ const TouchFriendlyPracticeList: React.FC<TouchFriendlyPracticeListProps> = ({
   // Create sections based on grouping preference
   const sections = useMemo((): PracticeSection[] => {
     switch (grouping) {
-      case 'by-team':
-        // This would be implemented with team sections
-        return createChronologicalPracticeSections(sortedPractices);
       case 'flat':
         return [{
           id: 'all-practices',
@@ -89,27 +90,25 @@ const TouchFriendlyPracticeList: React.FC<TouchFriendlyPracticeListProps> = ({
   }, [sortedPractices, grouping]);
 
   // Handle practice press with haptic feedback
-  const handlePracticePress = (practiceId: string) => {
+  const handlePracticePress = useCallback((practiceId: string) => {
     if (enableHapticFeedback) {
-      // Import and use haptic feedback
-      // import { Haptic } from 'expo-haptics';
-      // Haptic.impactAsync(Haptic.ImpactFeedbackStyle.Light);
+      HapticFeedback.light();
     }
     onPracticePress?.(practiceId);
-  };
+  }, [enableHapticFeedback, onPracticePress]);
 
   // Render section header
-  const renderSectionHeader = ({ section }: { section: PracticeSection }) => (
+  const renderSectionHeader = useCallback(({ section }: { section: SectionListData<Practice, PracticeSection> }) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{section.title}</Text>
       {section.subtitle && (
         <Text style={styles.sectionSubtitle}>{section.subtitle}</Text>
       )}
     </View>
-  );
+  ), []);
 
   // Render practice item based on variant
-  const renderPracticeItem = ({ item: practice }: { item: Practice }) => {
+  const renderPracticeItem: ListRenderItem<Practice> = useCallback(({ item: practice }) => {
     const riskLevel = getPracticeRiskLevel(practice);
     const riskColor = getPracticeRiskColor(practice);
     const maxHeatIndex = getPracticeMaxHeatIndex(practice);
@@ -173,7 +172,7 @@ const TouchFriendlyPracticeList: React.FC<TouchFriendlyPracticeListProps> = ({
                   <Text style={styles.heatText}>{maxHeatIndex}°F</Text>
                 </>
               )}
-              <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+              <Ionicons name="chevron-forward" size={20} color={PALETTE.NEUTRAL_400} />
             </View>
           </View>
         </TouchableOpacity>
@@ -206,21 +205,21 @@ const TouchFriendlyPracticeList: React.FC<TouchFriendlyPracticeListProps> = ({
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.cardItemFooter}>
           <View style={styles.cardStats}>
             <View style={styles.statItem}>
-              <Ionicons name="list" size={16} color="#6b7280" />
+              <Ionicons name="list" size={16} color={PALETTE.NEUTRAL_500} />
               <Text style={styles.statText}>{checklistCount} checklists</Text>
             </View>
             {checklistCount > 0 && (
               <View style={styles.statItem}>
-                <Ionicons name="thermometer" size={16} color="#6b7280" />
+                <Ionicons name="thermometer" size={16} color={PALETTE.NEUTRAL_500} />
                 <Text style={styles.statText}>{maxHeatIndex}°F</Text>
               </View>
             )}
           </View>
-          
+
           {checklistCount > 0 && (
             <View style={[styles.riskBadge, { backgroundColor: riskColor }]}>
               <Text style={styles.riskText}>{riskLevel}</Text>
@@ -229,15 +228,15 @@ const TouchFriendlyPracticeList: React.FC<TouchFriendlyPracticeListProps> = ({
         </View>
       </TouchableOpacity>
     );
-  };
+  }, [variant, showTeamColors, teamColors, handlePracticePress]);
 
-  // Render empty state
-  const renderEmptyState = () => (
+  // Render empty state (only shown when there are no practices at all)
+  const renderEmptyState = useCallback(() => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="calendar-outline" size={48} color="#9ca3af" />
+      <Ionicons name="calendar-outline" size={48} color={PALETTE.NEUTRAL_400} />
       <Text style={styles.emptyText}>
-        {state.data.data.practices.length === 0 
-          ? 'No practices yet' 
+        {state.data.data.practices.length === 0
+          ? 'No practices yet'
           : 'No practices found'
         }
       </Text>
@@ -247,92 +246,96 @@ const TouchFriendlyPracticeList: React.FC<TouchFriendlyPracticeListProps> = ({
         </Text>
       )}
     </View>
-  );
-
-  // List component props
-  const listProps = {
-    data: sections,
-    renderItem: ({ item: section }: { item: PracticeSection }) => (
-      <View>
-        {renderSectionHeader({ section })}
-        <FlatList
-          data={section.data}
-          renderItem={renderPracticeItem}
-          keyExtractor={item => item.id}
-          scrollEnabled={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.sectionContent}
-        />
-      </View>
-    ),
-    ListEmptyComponent: renderEmptyState,
-    ListHeaderComponent: grouping === 'flat' ? null : renderEmptyState,
-    showsVerticalScrollIndicator: false,
-    contentContainerStyle: [styles.listContent, contentStyle],
-    style,
-  };
+  ), [state.data.data.practices.length]);
 
   return (
     <View style={[styles.container, style]}>
-      {grouping === 'chronological' && sections.length > 0 && (
-        <FlatList
-          {...listProps}
-        />
-      )}
-      
-      {grouping === 'flat' && (
-        <FlatList
-          data={sortedPractices}
-          renderItem={renderPracticeItem}
-          keyExtractor={item => item.id}
-          ListEmptyComponent={renderEmptyState}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={[styles.flatListContent, contentStyle]}
-          style={style}
-        />
-      )}
+      <SectionList
+        sections={sections}
+        keyExtractor={item => item.id}
+        renderItem={renderPracticeItem}
+        renderSectionHeader={renderSectionHeader}
+        stickySectionHeadersEnabled={false}
+        ListEmptyComponent={renderEmptyState}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[styles.listContent, contentStyle]}
+      />
     </View>
   );
 };
 
 // Style definitions
 const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#f8fafc',
+  cardCoach: {
+    color: PALETTE.NEUTRAL_500,
+    fontSize: 14,
+  },
+  cardDate: {
+    color: PALETTE.NEUTRAL_500,
+    fontSize: 14,
+    textAlign: 'right',
+  },
+  cardItem: {
+    backgroundColor: PALETTE.WHITE,
+    borderRadius: 12,
+    elevation: 2,
+    marginBottom: 12,
+    marginHorizontal: 16,
+    padding: 16,
+    shadowColor: PALETTE.SHADOW_BLACK,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cardItemFooter: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cardItemHeader: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  cardItemLeft: {
+    alignItems: 'center',
+    flexDirection: 'row',
     flex: 1,
   },
-  listContent: {
-    paddingBottom: 20,
+  cardItemRight: {
+    alignItems: 'flex-start',
   },
-  flatListContent: {
-    paddingBottom: 20,
-    paddingHorizontal: 16,
-  },
-  sectionHeader: {
-    backgroundColor: 'white',
-    borderBottomColor: '#e5e7eb',
-    borderBottomWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  sectionTitle: {
-    color: '#1f2937',
-    fontSize: 16,
+  cardLocation: {
+    color: PALETTE.NEUTRAL_800,
+    fontSize: 18,
     fontWeight: '600',
+    marginBottom: 4,
   },
-  sectionSubtitle: {
-    color: '#6b7280',
+  cardStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  compactCoach: {
+    color: PALETTE.NEUTRAL_500,
     fontSize: 14,
-    marginTop: 2,
   },
-  sectionContent: {
-    paddingHorizontal: 16,
+  compactDate: {
+    color: PALETTE.NEUTRAL_400,
+    fontSize: 12,
   },
-  
-  // Compact variant styles
+  compactDateContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 4,
+  },
+  compactHeatIndicator: {
+    borderRadius: 6,
+    height: 12,
+    width: 12,
+  },
   compactItem: {
-    backgroundColor: 'white',
-    borderBottomColor: '#e5e7eb',
+    backgroundColor: PALETTE.WHITE,
+    borderBottomColor: PALETTE.NEUTRAL_200,
     borderBottomWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -349,33 +352,61 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   compactLocation: {
-    color: '#1f2937',
+    color: PALETTE.NEUTRAL_800,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
   },
-  compactCoach: {
-    color: '#6b7280',
+  container: {
+    backgroundColor: PALETTE.GRAY_50,
+    flex: 1,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 40,
+  },
+  emptySubText: {
+    color: PALETTE.NEUTRAL_400,
     fontSize: 14,
+    lineHeight: 20,
+    marginTop: 4,
+    textAlign: 'center',
   },
-  compactDateContainer: {
-    alignItems: 'flex-end',
-    marginBottom: 4,
+  emptyText: {
+    color: PALETTE.NEUTRAL_500,
+    fontSize: 18,
+    marginTop: 8,
+    textAlign: 'center',
   },
-  compactDate: {
-    color: '#9ca3af',
+  heatIndicator: {
+    borderRadius: 8,
+    height: 16,
+    width: 16,
+  },
+  heatText: {
+    color: PALETTE.NEUTRAL_800,
+    fontSize: 14,
+    fontWeight: '600',
+    minWidth: 40,
+    textAlign: 'right',
+  },
+  listCoach: {
+    color: PALETTE.NEUTRAL_500,
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  listDate: {
+    color: PALETTE.NEUTRAL_400,
     fontSize: 12,
   },
-  compactHeatIndicator: {
-    borderRadius: 6,
-    height: 12,
-    width: 12,
-  },
-
-  // List variant styles
   listItem: {
-    backgroundColor: 'white',
-    borderBottomColor: '#e5e7eb',
+    backgroundColor: PALETTE.WHITE,
+    borderBottomColor: PALETTE.NEUTRAL_200,
     borderBottomWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -400,92 +431,10 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   listLocation: {
-    color: '#1f2937',
+    color: PALETTE.NEUTRAL_800,
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 2,
-  },
-  listCoach: {
-    color: '#6b7280',
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  listDate: {
-    color: '#9ca3af',
-    fontSize: 12,
-  },
-  heatIndicator: {
-    borderRadius: 8,
-    height: 16,
-    width: 16,
-  },
-  heatText: {
-    color: '#1f2937',
-    fontSize: 14,
-    fontWeight: '600',
-    minWidth: 40,
-    textAlign: 'right',
-  },
-
-  // Card variant styles
-  cardItem: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    elevation: 2,
-    marginBottom: 12,
-    marginHorizontal: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  cardItemHeader: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  cardItemLeft: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    flex: 1,
-  },
-  cardItemRight: {
-    alignItems: 'flex-start',
-  },
-  cardLocation: {
-    color: '#1f2937',
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  cardCoach: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  cardDate: {
-    color: '#6b7280',
-    fontSize: 14,
-    textAlign: 'right',
-  },
-  cardItemFooter: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  cardStats: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  statItem: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 4,
-  },
-  statText: {
-    color: '#6b7280',
-    fontSize: 14,
   },
   riskBadge: {
     borderRadius: 12,
@@ -493,37 +442,42 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   riskText: {
-    color: 'white',
+    color: PALETTE.WHITE,
     fontSize: 12,
     fontWeight: '600',
   },
-
-  // Common styles
+  sectionHeader: {
+    backgroundColor: PALETTE.WHITE,
+    borderBottomColor: PALETTE.NEUTRAL_200,
+    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  sectionSubtitle: {
+    color: PALETTE.NEUTRAL_500,
+    fontSize: 14,
+    marginTop: 2,
+  },
+  sectionTitle: {
+    color: PALETTE.NEUTRAL_800,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  statItem: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  statText: {
+    color: PALETTE.NEUTRAL_500,
+    fontSize: 14,
+  },
   teamColorDot: {
-    borderColor: '#e5e7eb',
+    borderColor: PALETTE.NEUTRAL_200,
     borderRadius: 6,
     borderWidth: 2,
     height: 12,
     width: 12,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 40,
-  },
-  emptyText: {
-    color: '#6b7280',
-    fontSize: 18,
-    marginTop: 8,
-    textAlign: 'center',
-  },
-  emptySubText: {
-    color: '#9ca3af',
-    fontSize: 14,
-    lineHeight: 20,
-    marginTop: 4,
-    textAlign: 'center',
   },
 });
 

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { TeamFormData } from '../../types'
 import { TeamFormSchema } from '../../utils/validation'
 import { HapticFeedback } from '../../utils/hapticFeedback'
+import { PALETTE } from '../../utils/outdoorColors'
 
 const TEAM_COLOR_OPTIONS = [
   '#FF6B6B',
@@ -15,6 +16,20 @@ const TEAM_COLOR_OPTIONS = [
   '#98D8C8',
   '#F7DC6F',
 ] as const
+
+// Human-readable color names for accessibility (screen readers).
+const COLOR_NAMES: Record<string, string> = {
+  '#FF6B6B': 'Coral Red',
+  '#4ECDC4': 'Teal',
+  '#45B7D1': 'Sky Blue',
+  '#96CEB4': 'Sage Green',
+  '#FFEAA7': 'Lemon Yellow',
+  '#DDA0DD': 'Lavender',
+  '#98D8C8': 'Mint',
+  '#F7DC6F': 'Golden Yellow',
+}
+
+const colorName = (hex: string): string => COLOR_NAMES[hex] ?? hex
 
 interface TeamFormProps {
   initialValues?: Partial<TeamFormData>
@@ -63,8 +78,8 @@ const TeamForm: React.FC<TeamFormProps> = ({
   }
 
   const handleSubmit = () => {
-    HapticFeedback.light()
     if (validate()) {
+      HapticFeedback.light()
       onSubmit({ name: name.trim(), color })
     } else {
       HapticFeedback.error()
@@ -81,7 +96,7 @@ const TeamForm: React.FC<TeamFormProps> = ({
         value={name}
         onChangeText={setName}
         placeholder="Enter team name"
-        placeholderTextColor="#9ca3af"
+        placeholderTextColor={PALETTE.TEXT_MUTED}
         accessibilityLabel="Team name input"
         accessibilityHint="Enter a unique team name"
         testID="team-name-input"
@@ -110,11 +125,11 @@ const TeamForm: React.FC<TeamFormProps> = ({
               }}
               accessible={true}
               accessibilityRole="button"
-              accessibilityLabel={`Select color ${option}`}
+              accessibilityLabel={`Select color ${colorName(option)}`}
               accessibilityState={{ selected }}
               testID={`color-option-${option}`}
             >
-              {selected ? <Ionicons name="checkmark" size={20} color="#ffffff" /> : null}
+              {selected ? <Ionicons name="checkmark" size={20} color={PALETTE.WHITE} /> : null}
             </TouchableOpacity>
           )
         })}
@@ -162,11 +177,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   cancelButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: PALETTE.NEUTRAL_100,
     marginRight: 8,
   },
   cancelButtonText: {
-    color: '#374151',
+    color: PALETTE.TEXT_STRONG,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -177,7 +192,7 @@ const styles = StyleSheet.create({
   },
   colorSwatch: {
     alignItems: 'center',
-    borderColor: 'transparent',
+    borderColor: PALETTE.TRANSPARENT,
     borderRadius: 22,
     borderWidth: 2,
     height: 44,
@@ -187,21 +202,21 @@ const styles = StyleSheet.create({
     width: 44,
   },
   colorSwatchSelected: {
-    borderColor: '#111827',
+    borderColor: PALETTE.TEXT_DARK,
   },
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: PALETTE.WHITE,
     flex: 1,
     padding: 16,
   },
   errorText: {
-    color: '#dc2626',
+    color: PALETTE.RED_600,
     fontSize: 13,
     marginTop: 4,
   },
   input: {
-    backgroundColor: '#f9fafb',
-    borderColor: '#e5e7eb',
+    backgroundColor: PALETTE.NEUTRAL_50,
+    borderColor: PALETTE.NEUTRAL_200,
     borderRadius: 8,
     borderWidth: 1,
     fontSize: 16,
@@ -210,10 +225,10 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   inputError: {
-    borderColor: '#dc2626',
+    borderColor: PALETTE.RED_600,
   },
   label: {
-    color: '#374151',
+    color: PALETTE.TEXT_STRONG,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 6,
@@ -222,27 +237,27 @@ const styles = StyleSheet.create({
   preview: {
     alignItems: 'center',
     borderRadius: 8,
+    justifyContent: 'center',
     marginTop: 16,
     minHeight: 48,
-    justifyContent: 'center',
     padding: 12,
   },
   previewText: {
-    color: '#ffffff',
+    color: PALETTE.WHITE,
     fontSize: 16,
     fontWeight: '700',
   },
   submitButton: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: PALETTE.BLUE_500,
     marginLeft: 8,
   },
   submitButtonText: {
-    color: '#ffffff',
+    color: PALETTE.WHITE,
     fontSize: 16,
     fontWeight: '600',
   },
   title: {
-    color: '#111827',
+    color: PALETTE.TEXT_DARK,
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 8,

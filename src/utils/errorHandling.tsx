@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { PALETTE } from '../utils/outdoorColors';
 
 // Error severity levels
 export type ErrorSeverity = 'info' | 'warning' | 'error' | 'success';
@@ -38,7 +39,9 @@ const HAPTIC_FEEDBACK = {
  */
 export const triggerHapticFeedback = (severity: ErrorSeverity): void => {
   try {
-    Haptics.notificationAsync(HAPTIC_FEEDBACK[severity]);
+    void Haptics.notificationAsync(HAPTIC_FEEDBACK[severity]).catch(() => {
+      // Ignore haptic failures (unsupported platform, etc.)
+    });
   } catch (error) {
     console.warn('Haptic feedback not available:', error);
   }
@@ -49,8 +52,28 @@ export const triggerHapticFeedback = (severity: ErrorSeverity): void => {
  */
 export const useErrorHandler = (): ErrorHandler => {
   const [error, setError] = React.useState<ErrorMessage | null>(null);
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleError = (
+  // Clear any pending auto-dismiss timer on unmount to avoid leaking timers.
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
+  const dismissError = React.useCallback((errorId?: string) => {
+    if (errorId) {
+      // Dismiss specific error
+      setError(prev => prev?.id === errorId ? null : prev);
+    } else {
+      // Dismiss current error
+      setError(null);
+    }
+  }, []);
+
+  const handleError = React.useCallback((
     message: string,
     severity: ErrorSeverity = 'error',
     action?: { label: string; onPress: () => void }
@@ -72,25 +95,18 @@ export const useErrorHandler = (): ErrorHandler => {
 
     // Auto-dismiss after 5 seconds if no action provided
     if (!action) {
-      setTimeout(() => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      timerRef.current = setTimeout(() => {
         dismissError(errorId);
       }, 5000);
     }
-  };
+  }, [dismissError]);
 
-  const clearError = () => {
+  const clearError = React.useCallback(() => {
     setError(null);
-  };
-
-  const dismissError = (errorId?: string) => {
-    if (errorId) {
-      // Dismiss specific error
-      setError(prev => prev?.id === errorId ? null : prev);
-    } else {
-      // Dismiss current error
-      setError(null);
-    }
-  };
+  }, []);
 
   return {
     error,
@@ -253,33 +269,33 @@ export class ErrorBoundary extends React.Component<
 
 const styles = StyleSheet.create({
   errorContainer: {
+    alignItems: 'center',
+    backgroundColor: PALETTE.GRAY_SOFT,
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     padding: 20,
-    backgroundColor: '#f8f9fa',
+  },
+  errorDetails: {
+    color: PALETTE.GRAY_MID,
+    fontSize: 14,
+    marginBottom: 20,
+    textAlign: 'center' as const,
   },
   errorText: {
+    color: PALETTE.RED_BOOTSTRAP,
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#dc3545',
     marginBottom: 10,
     textAlign: 'center' as const,
   },
-  errorDetails: {
-    fontSize: 14,
-    color: '#6c757d',
-    textAlign: 'center' as const,
-    marginBottom: 20,
-  },
   retryButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: PALETTE.BLUE_600,
+    borderRadius: 5,
     paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 5,
   },
   retryButtonText: {
-    color: 'white',
+    color: PALETTE.WHITE,
     fontSize: 16,
     fontWeight: '500',
   },

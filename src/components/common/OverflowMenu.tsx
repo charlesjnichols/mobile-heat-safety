@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { HapticFeedback } from '../../utils/hapticFeedback';
+import { PALETTE } from '../../utils/outdoorColors';
 
 export interface OverflowMenuItem {
   key: string;
@@ -44,7 +45,7 @@ export const OverflowMenu: React.FC<OverflowMenuProps> = ({
         accessibilityLabel={accessibilityLabel}
         testID={testID}
       >
-        <Ionicons name="ellipsis-horizontal" size={24} color="#3b82f6" />
+        <Ionicons name="ellipsis-horizontal" size={24} color={PALETTE.BLUE_500} />
       </TouchableOpacity>
 
       <Modal
@@ -68,7 +69,7 @@ export const OverflowMenu: React.FC<OverflowMenuProps> = ({
                 <Ionicons
                   name={item.icon}
                   size={20}
-                  color={item.destructive ? '#dc2626' : '#1f2937'}
+                  color={item.destructive ? PALETTE.RED_600 : PALETTE.NEUTRAL_800}
                 />
                 <Text
                   style={[
@@ -95,13 +96,13 @@ const styles = StyleSheet.create({
     width: 44,
   },
   menuCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: PALETTE.WHITE,
     borderRadius: 12,
     elevation: 5,
     minWidth: 200,
     overflow: 'hidden',
     paddingVertical: 8,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 12,
@@ -114,16 +115,16 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   menuItemText: {
-    color: '#1f2937',
+    color: PALETTE.NEUTRAL_800,
     fontSize: 16,
     marginLeft: 12,
   },
   menuItemTextDestructive: {
-    color: '#dc2626',
+    color: PALETTE.RED_600,
   },
   overlay: {
     alignItems: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: PALETTE.BLACK_30,
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 80,

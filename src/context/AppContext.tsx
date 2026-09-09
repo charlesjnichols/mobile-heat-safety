@@ -97,6 +97,7 @@ type AppAction =
   | { type: 'CLEAR_DATA' }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
+  | { type: 'SET_HYDRATED' }
 
 // State interface
 interface AppState {
@@ -110,6 +111,9 @@ interface AppState {
   }
   loading: boolean
   error: string | null
+  // True only after the initial AsyncStorage load resolves. Gates the save effect
+  // so persisted user data is never overwritten by the seeded default state.
+  hydrated: boolean
 }
 
 // Initial state
@@ -124,6 +128,7 @@ const initialState: AppState = {
   },
   loading: false,
   error: null,
+  hydrated: false,
 }
 
 // Reducer
@@ -141,6 +146,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             teams: [...state.data.data.teams, action.payload],
@@ -152,6 +158,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             teams: state.data.data.teams.map(team =>
@@ -165,6 +172,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             teams: state.data.data.teams.filter(team => team.id !== action.payload),
@@ -176,6 +184,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             practices: [...state.data.data.practices, action.payload],
@@ -187,6 +196,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             practices: state.data.data.practices.map(practice =>
@@ -200,6 +210,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             practices: state.data.data.practices.filter(practice => practice.id !== action.payload),
@@ -211,6 +222,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             practices: state.data.data.practices.map(practice =>
@@ -230,6 +242,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             practices: state.data.data.practices.map(practice =>
@@ -253,6 +266,7 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         ...state,
         data: {
           ...state.data,
+          lastSync: new Date().toISOString(),
           data: {
             ...state.data.data,
             practices: state.data.data.practices.map(practice =>
@@ -275,22 +289,14 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         data: action.payload,
       }
     case 'MERGE_DATA': {
-      const existingTeamIds = new Set(state.data.data.teams.map(team => team.id))
-      const existingPracticeIds = new Set(state.data.data.practices.map(practice => practice.id))
+      // Resolve conflicts by id, keeping the newest record (by updatedAt).
+      const teams = mergeById(state.data.data.teams, action.payload.teams)
+      const practices = mergeById(state.data.data.practices, action.payload.practices)
       return {
         ...state,
         data: {
           ...state.data,
-          data: {
-            teams: [
-              ...state.data.data.teams,
-              ...action.payload.teams.filter(team => !existingTeamIds.has(team.id)),
-            ],
-            practices: [
-              ...state.data.data.practices,
-              ...action.payload.practices.filter(practice => !existingPracticeIds.has(practice.id)),
-            ],
-          },
+          data: { teams, practices },
         },
       }
     }
@@ -310,9 +316,27 @@ export const appReducer = (state: AppState, action: AppAction): AppState => {
         error: action.payload,
         loading: false,
       }
+    case 'SET_HYDRATED':
+      return {
+        ...state,
+        hydrated: true,
+        loading: false,
+      }
     default:
       return state
   }
+}
+
+// Merge two arrays of records by id, taking the record with the newest updatedAt.
+function mergeById<T extends { id: string; updatedAt?: string }>(existing: T[], incoming: T[]): T[] {
+  const map = new Map<string, T>()
+  for (const item of [...existing, ...incoming]) {
+    const current = map.get(item.id)
+    if (!current || (item.updatedAt ?? '') > (current.updatedAt ?? '')) {
+      map.set(item.id, item)
+    }
+  }
+  return Array.from(map.values())
 }
 
 // Context
@@ -342,10 +366,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         } else {
           // Save initial data to storage
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialState.data))
-          dispatch({ type: 'SET_LOADING', payload: false })
         }
+
+        // Mark hydrated only after the initial load resolves; this gates the save
+        // effect below so the seed/default state is never written over persisted data.
+        dispatch({ type: 'SET_HYDRATED' })
       } catch (error) {
         console.error('Error loading data:', error)
+        // Keep hydrated=false so we never overwrite good stored data with the fallback.
         dispatch({ type: 'SET_ERROR', payload: 'Failed to load data' })
       }
     }
@@ -368,14 +396,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       }
     }
 
-    // Save whenever data changes and we are not mid-load. A previous SAVE error
-    // must not permanently suppress persistence, but a LOAD error must, so we
-    // never overwrite good stored data with the seeded fallback state.
-    if (!state.loading && state.error !== 'Failed to load data') {
+    // Only persist once the initial load has resolved. A previous LOAD error must
+    // not be overwritten by the seeded fallback state.
+    if (state.hydrated && state.error !== 'Failed to load data') {
       saveData()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.data, state.loading])
+  }, [state.data, state.hydrated])
 
   return <AppContext.Provider value={{ state, dispatch }}>{children}</AppContext.Provider>
 }

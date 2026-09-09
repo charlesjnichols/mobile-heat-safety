@@ -1,32 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import { getHeatRisk, HEAT_THRESHOLDS } from '../../utils/heatIndex';
+import { PALETTE } from '../../utils/outdoorColors';
 
-// Heat index risk levels and color thresholds
-const RISK_THRESHOLDS = {
-  LOW: {
-    max: 79,
-    color: '#22c55e',
-    label: 'LOW',
-    description: 'Safe conditions'
-  },
-  MODERATE: {
-    max: 90,
-    color: '#eab308',
-    label: 'MODERATE',
-    description: 'Take precautions'
-  },
-  HIGH: {
-    max: 105,
-    color: '#f97316',
-    label: 'HIGH',
-    description: 'Modify practice'
-  },
-  EXTREME: {
-    max: Infinity,
-    color: '#dc2626',
-    label: 'EXTREME',
-    description: 'Cancel practice'
-  }
+export type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'EXTREME';
+
+// Human-readable labels/descriptions per risk level (colors/thresholds come from shared HEAT_THRESHOLDS)
+const RISK_META = {
+  LOW: { label: 'LOW', description: 'Safe conditions' },
+  MODERATE: { label: 'MODERATE', description: 'Take precautions' },
+  HIGH: { label: 'HIGH', description: 'Modify practice' },
+  EXTREME: { label: 'EXTREME', description: 'Cancel practice' },
 } as const;
 
 interface ColorCodeProps {
@@ -64,7 +48,8 @@ export const ColorCode: React.FC<ColorCodeProps> = ({
 }) => {
   // Determine risk level and color
   const riskLevel = getRiskLevel(heatIndex);
-  const color = customColor || RISK_THRESHOLDS[riskLevel].color;
+  const color = customColor || HEAT_THRESHOLDS[riskLevel].color;
+  const meta = RISK_META[riskLevel];
 
   // Size variants
   const sizeStyles = {
@@ -112,19 +97,19 @@ export const ColorCode: React.FC<ColorCodeProps> = ({
     >
       {showLabel && (
         <Text
-          style={[styles.label, labelSizeStyles[size]]}
+          style={[styles.label, styles.labelText, labelSizeStyles[size]]}
           numberOfLines={1}
         >
-          {riskLevel}
+          {meta.label}
         </Text>
       )}
       {showDescription && (
         <Text
-          style={[styles.description, descriptionSizeStyles[size]]}
+          style={[styles.description, styles.descriptionText, descriptionSizeStyles[size]]}
           numberOfLines={1}
-          accessibilityLabel={RISK_THRESHOLDS[riskLevel].description}
+          accessibilityLabel={meta.description}
         >
-          {RISK_THRESHOLDS[riskLevel].description}
+          {meta.description}
         </Text>
       )}
     </View>
@@ -137,15 +122,7 @@ export const ColorCode: React.FC<ColorCodeProps> = ({
  * @returns Risk level ('LOW' | 'MODERATE' | 'HIGH' | 'EXTREME')
  */
 export const getRiskLevel = (heatIndex: number): RiskLevel => {
-  if (heatIndex <= RISK_THRESHOLDS.LOW.max) {
-    return 'LOW';
-  } else if (heatIndex <= RISK_THRESHOLDS.MODERATE.max) {
-    return 'MODERATE';
-  } else if (heatIndex <= RISK_THRESHOLDS.HIGH.max) {
-    return 'HIGH';
-  } else {
-    return 'EXTREME';
-  }
+  return getHeatRisk(heatIndex);
 };
 
 /**
@@ -154,7 +131,7 @@ export const getRiskLevel = (heatIndex: number): RiskLevel => {
  * @returns Hex color code
  */
 export const getRiskColor = (riskLevel: RiskLevel): string => {
-  return RISK_THRESHOLDS[riskLevel].color;
+  return HEAT_THRESHOLDS[riskLevel].color;
 };
 
 /**
@@ -163,7 +140,7 @@ export const getRiskColor = (riskLevel: RiskLevel): string => {
  * @returns true if heat index requires safety precautions
  */
 export const requiresSafetyAction = (heatIndex: number): boolean => {
-  return heatIndex > RISK_THRESHOLDS.LOW.max;
+  return heatIndex > HEAT_THRESHOLDS.LOW.max;
 };
 
 /**
@@ -186,12 +163,11 @@ export const getRecommendedAction = (riskLevel: RiskLevel): string => {
   }
 };
 
-export type RiskLevel = keyof typeof RISK_THRESHOLDS;
-
 interface RiskBadgeProps {
   riskLevel: RiskLevel;
   size?: 'small' | 'medium' | 'large';
   showLabel?: boolean;
+  customColor?: string;
   style?: ViewStyle;
   testID?: string;
 }
@@ -205,10 +181,11 @@ export const RiskBadge: React.FC<RiskBadgeProps> = ({
   riskLevel,
   size = 'medium',
   showLabel = true,
+  customColor,
   style,
   testID
 }) => {
-  const color = RISK_THRESHOLDS[riskLevel].color;
+  const color = customColor || HEAT_THRESHOLDS[riskLevel].color;
 
   const badgeSizeStyles = {
     small: { paddingHorizontal: 6, paddingVertical: 2 },
@@ -258,7 +235,7 @@ export const HeatIndexSummary: React.FC<HeatIndexSummaryProps> = ({
   testID
 }) => {
   const riskLevel = getRiskLevel(heatIndex);
-  const color = customColor || RISK_THRESHOLDS[riskLevel].color;
+  const color = customColor || HEAT_THRESHOLDS[riskLevel].color;
 
   const nameSizeStyles = {
     small: 12,
@@ -287,15 +264,12 @@ export const HeatIndexSummary: React.FC<HeatIndexSummaryProps> = ({
         {heatIndex}°F
       </Text>
       {showLabel && (
-        <RiskBadge riskLevel={riskLevel} size={size} />
+        <RiskBadge riskLevel={riskLevel} size={size} customColor={customColor} />
       )}
     </View>
   );
 };
 // Export constants
-export const RISK_THRESHOLDS_CONSTANTS = RISK_THRESHOLDS;
-export type RiskLevelType = RiskLevel;
-
 const styles = StyleSheet.create({
   badge: {
     alignItems: 'center',
@@ -303,13 +277,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   badgeLabel: {
-    color: '#ffffff',
+    color: PALETTE.WHITE,
     fontWeight: 'bold',
     textTransform: 'uppercase',
   },
   container: {
     alignItems: 'center',
-    borderColor: 'rgba(0,0,0,0.1)',
+    borderColor: PALETTE.BLACK_10,
     borderRadius: 8,
     borderWidth: 2,
     justifyContent: 'center',
@@ -319,6 +293,9 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 10,
     marginTop: 2,
+  },
+  descriptionText: {
+    color: PALETTE.WHITE,
   },
   description_large: {
     fontSize: 12,
@@ -334,6 +311,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textTransform: 'uppercase',
   },
+  labelText: {
+    color: PALETTE.WHITE,
+  },
   label_large: {
     fontSize: 16,
   },
@@ -344,12 +324,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   summaryContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: PALETTE.WHITE,
     borderRadius: 8,
     padding: 12,
   },
   summaryName: {
-    color: '#333333',
+    color: PALETTE.GRAY_NEUTRAL,
     fontWeight: '600',
     marginBottom: 4,
   },

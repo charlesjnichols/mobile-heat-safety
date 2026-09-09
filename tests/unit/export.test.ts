@@ -16,6 +16,7 @@ const makePractice = (overrides: Partial<Practice> = {}): Practice => ({
   sport: 'Soccer',
   contactInfo: 'coach@example.com',
   teamId: 'team-1',
+  notes: '',
   checklists: [],
   createdAt: '2026-09-02T10:00:00Z',
   updatedAt: '2026-09-02T10:00:00Z',

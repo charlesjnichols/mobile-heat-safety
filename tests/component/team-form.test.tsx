@@ -58,7 +58,16 @@ describe('TeamForm Component', () => {
       <TeamForm existingTeamNames={existingTeamNames} onSubmit={jest.fn()} onCancel={jest.fn()} />
     )
 
-    fireEvent.press(getByLabelText('Select color #45B7D1'))
+    fireEvent.press(getByLabelText('Select color Sky Blue'))
     expect(getByLabelText('Team color preview #45B7D1')).toBeTruthy()
+  })
+
+  it('exposes human-readable color names for accessibility', () => {
+    const { getByLabelText } = render(
+      <TeamForm existingTeamNames={existingTeamNames} onSubmit={jest.fn()} onCancel={jest.fn()} />
+    )
+
+    expect(getByLabelText('Select color Coral Red')).toBeTruthy()
+    expect(getByLabelText('Select color Teal')).toBeTruthy()
   })
 })

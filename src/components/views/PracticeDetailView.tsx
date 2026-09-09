@@ -8,7 +8,6 @@ import {
   Alert,
   Share,
   ActivityIndicator,
-  RefreshControl,
   TextInput,
 } from 'react-native';
 import { useAppContext } from '../../context/AppContext';
@@ -49,7 +48,6 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
   };
   const { state, dispatch } = useAppContext();
   const { practiceId } = (props.route as { params: { practiceId: string } }).params;
-  console.log('[PracticeDetailView] mounted with practiceId=', practiceId, 'has navigation=', !!props.navigation, 'has route=', !!props.route);
 
   // Practice and team are derived from shared state (single source of truth).
   const practice = state.data.data.practices.find((p: Practice) => p.id === practiceId) ?? null;
@@ -57,10 +55,8 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
     ? state.data.data.teams.find((t: Team) => t.id === practice.teamId) ?? null
     : null;
   const loading = state.loading;
-  const [refreshing, setRefreshing] = useState(false);
   const [notes, setNotes] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
-  const [, setDeletingChecklist] = useState<string | null>(null);
 
   // Keep the notes text field synced to the practice's persisted notes whenever
   // the practice is (re)loaded into shared state.
@@ -69,17 +65,9 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
     setNotes(practiceNotes)
   }, [practiceNotes]);
 
-  // Handle pull to refresh
-  const handleRefresh = () => {
-    // Shared state is always current; the refresh gesture is a no-op that just
-    // dismisses the spinner.
-    setRefreshing(false);
-  };
-
   // Handle add checklist entry
   const handleAddChecklist = () => {
     HapticFeedback.light();
-    console.log('[PracticeDetailView.handleAddChecklist] practiceId=', practiceId, 'navigation=', typeof navigation, 'navigate=', typeof navigation.navigate);
     navigation.navigate('ChecklistForm', {
       practiceId,
       isEdit: false,
@@ -89,7 +77,6 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
   // Handle edit checklist entry
   const handleEditChecklist = (checklist: Checklist) => {
     HapticFeedback.light();
-    console.log('[PracticeDetailView.handleEditChecklist] practiceId=', practiceId, 'checklist=', checklist.id);
     navigation.navigate('ChecklistForm', {
       practiceId,
       checklistId: checklist.id,
@@ -102,8 +89,6 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
     if (!practice) return;
 
     try {
-      setDeletingChecklist(checklistId);
-
       // Update shared state so practice detail/list reflect the change immediately;
       // the provider's auto-save persists the change.
       dispatch({ type: 'DELETE_CHECKLIST', payload: { practiceId, checklistId } });
@@ -113,8 +98,6 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
     } catch (err) {
       console.error('Error deleting checklist:', err);
       Alert.alert('Error', 'Failed to delete checklist entry');
-    } finally {
-      setDeletingChecklist(null);
     }
   };
 
@@ -154,7 +137,9 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
     dispatch({ type: 'UPDATE_PRACTICE', payload: updatedPractice });
     setNotes(trimmed);
     setSavingNotes(true);
-    setTimeout(() => setSavingNotes(false), 0);
+    // The save is immediate (dispatch is synchronous); clear the busy flag on
+    // the next frame so the button briefly reflects the in-flight state.
+    requestAnimationFrame(() => setSavingNotes(false));
   };
 
   // Handle export data
@@ -164,14 +149,22 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
 
       if (!practice) return;
 
+      const checklistCount = practice.checklists.length;
+      const maxHeatIndex = checklistCount > 0
+        ? Math.max(...practice.checklists.map((c: Checklist) => c.heatIndex))
+        : 0;
+      const averageHeatIndex = checklistCount > 0
+        ? practice.checklists.reduce((sum: number, c: Checklist) => sum + c.heatIndex, 0) / checklistCount
+        : 0;
+
       const exportData = {
         exportedAt: new Date().toISOString(),
         version: '1.0.0',
         practice: {
           ...practice,
           team: team,
-          maxHeatIndex: Math.max(...practice.checklists.map((c: Checklist) => c.heatIndex)),
-          averageHeatIndex: practice.checklists.reduce((sum: number, c: Checklist) => sum + c.heatIndex, 0) / practice.checklists.length,
+          maxHeatIndex,
+          averageHeatIndex,
         },
       };
 
@@ -276,9 +269,6 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
       {/* Practice Information */}
       <ScrollView
         style={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
       >
         {/* Practice Header */}
         <View style={styles.practiceHeader}>
@@ -444,10 +434,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.HEADLINE,
     fontWeight: 'bold',
   },
-  safeArea: {
-    backgroundColor: COLORS.BACKGROUND,
-    flex: 1,
-  },
   container: {
     backgroundColor: COLORS.BACKGROUND,
     flex: 1,
@@ -500,6 +486,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'left',
   },
+  heatLevelGuidance: {
+    color: COLORS.TEXT_SECONDARY,
+    fontSize: FONT_SIZES.BODY,
+    marginTop: SPACING.XS,
+  },
+  heatLevelRange: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: FONT_SIZES.BODY,
+    fontWeight: 'bold',
+  },
+  heatLevelRow: {
+    backgroundColor: COLORS.CARD_BACKGROUND,
+    borderBottomColor: COLORS.BORDER,
+    borderBottomWidth: 1,
+    paddingHorizontal: SPACING.MD,
+    paddingVertical: SPACING.MD,
+  },
+  heatLevelsSection: {
+    marginBottom: SPACING.LG,
+    marginHorizontal: SPACING.MD,
+  },
   heatSummary: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -514,6 +521,44 @@ const styles = StyleSheet.create({
     color: COLORS.TEXT_PRIMARY,
     fontSize: FONT_SIZES.BODY,
     marginTop: SPACING.MD,
+  },
+  notesInput: {
+    backgroundColor: COLORS.CARD_BACKGROUND,
+    borderColor: COLORS.BORDER,
+    borderRadius: SPACING.SM,
+    borderWidth: 1,
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: FONT_SIZES.BODY,
+    minHeight: 100,
+    padding: SPACING.MD,
+    textAlignVertical: 'top',
+  },
+  notesSaveButton: {
+    alignItems: 'center',
+    backgroundColor: COLORS.PRIMARY,
+    borderRadius: SPACING.SM,
+    justifyContent: 'center',
+    marginTop: SPACING.SM,
+    minHeight: 44,
+    padding: SPACING.MD,
+  },
+  notesSaveButtonDisabled: {
+    opacity: 0.7,
+  },
+  notesSaveButtonText: {
+    color: COLORS.CARD_BACKGROUND,
+    fontSize: FONT_SIZES.BODY,
+    fontWeight: '600',
+  },
+  notesSection: {
+    marginBottom: SPACING.LG,
+    marginHorizontal: SPACING.MD,
+  },
+  notesTitle: {
+    color: COLORS.TEXT_PRIMARY,
+    fontSize: FONT_SIZES.HEADLINE,
+    fontWeight: 'bold',
+    marginBottom: SPACING.SM,
   },
   practiceCoach: {
     color: COLORS.TEXT_SECONDARY,
@@ -553,64 +598,9 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.BODY,
     fontWeight: '600',
   },
-  notesSection: {
-    marginBottom: SPACING.LG,
-    marginHorizontal: SPACING.MD,
-  },
-  notesTitle: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: FONT_SIZES.HEADLINE,
-    fontWeight: 'bold',
-    marginBottom: SPACING.SM,
-  },
-  notesInput: {
-    backgroundColor: COLORS.CARD_BACKGROUND,
-    borderColor: COLORS.BORDER,
-    borderRadius: SPACING.SM,
-    borderWidth: 1,
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: FONT_SIZES.BODY,
-    minHeight: 100,
-    padding: SPACING.MD,
-    textAlignVertical: 'top',
-  },
-  notesSaveButton: {
-    alignItems: 'center',
-    backgroundColor: COLORS.PRIMARY,
-    borderRadius: SPACING.SM,
-    justifyContent: 'center',
-    marginTop: SPACING.SM,
-    padding: SPACING.MD,
-    minHeight: 44,
-  },
-  notesSaveButtonDisabled: {
-    opacity: 0.7,
-  },
-  notesSaveButtonText: {
-    color: COLORS.CARD_BACKGROUND,
-    fontSize: FONT_SIZES.BODY,
-    fontWeight: '600',
-  },
-  heatLevelsSection: {
-    marginBottom: SPACING.LG,
-    marginHorizontal: SPACING.MD,
-  },
-  heatLevelRow: {
-    backgroundColor: COLORS.CARD_BACKGROUND,
-    borderBottomColor: COLORS.BORDER,
-    borderBottomWidth: 1,
-    paddingHorizontal: SPACING.MD,
-    paddingVertical: SPACING.MD,
-  },
-  heatLevelRange: {
-    color: COLORS.TEXT_PRIMARY,
-    fontSize: FONT_SIZES.BODY,
-    fontWeight: 'bold',
-  },
-  heatLevelGuidance: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: FONT_SIZES.BODY,
-    marginTop: SPACING.XS,
+  safeArea: {
+    backgroundColor: COLORS.BACKGROUND,
+    flex: 1,
   },
   teamBadge: {
     alignSelf: 'flex-start',

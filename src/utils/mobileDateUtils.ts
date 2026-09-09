@@ -35,28 +35,34 @@ export const formatTime = (timeString: string): string => {
   return `${displayHour}:${minutes} ${ampm}`;
 };
 
+// Build a local YYYY-MM-DD key from a Date (not UTC toISOString, so "today" and
+// calendar lookups match the local date that practice.date strings represent).
+const getLocalDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const formatRelativeTime = (dateString: string): string => {
   const date = new Date(dateString);
   const now = new Date();
-  const diffTime = Math.abs(now.getTime() - date.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) {
-    return 'Today';
-  } else if (diffDays === 1) {
-    return 'Yesterday';
-  } else if (diffDays < 7) {
-    return `${diffDays} days ago`;
-  } else if (diffDays < 30) {
-    const weeks = Math.floor(diffDays / 7);
-    return `${weeks} week${weeks > 1 ? 's' : ''} ago`;
-  } else if (diffDays < 365) {
-    const months = Math.floor(diffDays / 30);
-    return `${months} month${months > 1 ? 's' : ''} ago`;
-  } else {
-    const years = Math.floor(diffDays / 365);
-    return `${years} year${years > 1 ? 's' : ''} ago`;
+  const diffMs = date.getTime() - now.getTime();
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const abs = Math.abs(diffDays);
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Tomorrow';
+  if (diffDays === -1) return 'Yesterday';
+
+  const unit: [string, number] = abs < 30 ? ['week', Math.floor(abs / 7)]
+    : abs < 365 ? ['month', Math.floor(abs / 30)]
+    : ['year', Math.floor(abs / 365)];
+
+  if (diffDays > 0) {
+    return `In ${unit[1]} ${unit[0]}${unit[1] > 1 ? 's' : ''}`;
   }
+  return `${unit[1]} ${unit[0]}${unit[1] > 1 ? 's' : ''} ago`;
 };
 
 // Mobile-optimized date sorting functions
@@ -72,7 +78,9 @@ export const groupPracticesByDate = (practices: Practice[]): Record<string, { pr
   const sortedPractices = sortPracticesForMobile(practices);
   
   return sortedPractices.reduce((groups, practice) => {
-    const dateKey = formatDate(practice.date, 'short');
+    // Use the date-only key (YYYY-MM-DD) for grouping so the same date in
+    // different years does not collapse into one group; display uses a short label.
+    const dateKey = practice.date;
     const relativeTime = formatRelativeTime(practice.date);
     
     if (!groups[dateKey]) {
@@ -97,7 +105,7 @@ export const groupPracticesByWeek = (practices: Practice[]): Record<string, Prac
     const weekStart = new Date(date);
     weekStart.setDate(date.getDate() - date.getDay()); // Start of week (Sunday)
     
-    const weekKey = weekStart.toISOString().split('T')[0];
+    const weekKey = getLocalDateKey(weekStart);
     
     if (!groups[weekKey]) {
       groups[weekKey] = [];
@@ -255,8 +263,21 @@ export const createOptimizedPracticeList = (
   type: 'date' | 'team' | 'month';
 }[] => {
   switch (grouping) {
-    case 'by-team':
-      return createMobileTeamSections([], practices); // Empty teams array, will use all teams
+    case 'by-team': {
+      // Group by the teamIds actually referenced by practices (the teams array is
+      // not available here, so default to all team ids present in the practices).
+      const teamIds = Array.from(new Set(practices.map(p => p.teamId)));
+      return teamIds.map(teamId => {
+        const teamPractices = practices.filter(p => p.teamId === teamId);
+        return {
+          id: `team-${teamId}`,
+          title: teamId,
+          subtitle: `${teamPractices.length} ${teamPractices.length === 1 ? 'practice' : 'practices'}`,
+          data: sortPracticesForMobile(teamPractices),
+          type: 'team',
+        };
+      });
+    }
     case 'by-month':
       return createMobilePracticeSections(practices);
     default:
@@ -295,13 +316,13 @@ export const isSameDay = (date1: string, date2: string): boolean => {
 };
 
 export const isToday = (dateString: string): boolean => {
-  return isSameDay(dateString, new Date().toISOString().split('T')[0]);
+  return isSameDay(dateString, getLocalDateKey(new Date()));
 };
 
 export const isTomorrow = (dateString: string): boolean => {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  return isSameDay(dateString, tomorrow.toISOString().split('T')[0]);
+  return isSameDay(dateString, getLocalDateKey(tomorrow));
 };
 
 export const isThisWeek = (dateString: string): boolean => {
@@ -371,7 +392,7 @@ export const generateCalendarViewData = (practices: Practice[]): {
   for (let i = 0; i < 30; i++) {
     const date = new Date(today);
     date.setDate(today.getDate() + i);
-    const dateKey = date.toISOString().split('T')[0];
+    const dateKey = getLocalDateKey(date);
     
     calendarData.push({
       date: dateKey,

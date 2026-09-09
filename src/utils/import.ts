@@ -69,8 +69,12 @@ export const parseImportData = (jsonData: string): HeatSafetyData => {
   try {
     const normalized = normalizeLegacyData(parsed as Record<string, unknown>)
     return validateHeatSafetyData(normalized)
-  } catch {
-    throw new Error('Import data does not match the expected format')
+  } catch (error) {
+    const err = new Error('Import data does not match the expected format') as Error & {
+      cause?: unknown
+    }
+    err.cause = error
+    throw err
   }
 }
 
@@ -126,7 +130,9 @@ export const importData = (
 
   let teamsImported = 0
   imported.data.teams.forEach(team => {
-    if (!existingTeams.has(team.id)) {
+    const current = existingTeams.get(team.id)
+    // Conflict resolution: keep the newest record (by updatedAt).
+    if (!current || (team.updatedAt ?? '') > (current.updatedAt ?? '')) {
       existingTeams.set(team.id, team)
       teamsImported += 1
     }
@@ -134,8 +140,10 @@ export const importData = (
 
   let practicesImported = 0
   imported.data.practices.forEach(practice => {
-    if (!existingPractices.has(practice.id)) {
-      existingPractices.set(practice.id, practice)
+    const current = existingPractices.get(practice.id)
+    const deduped = dedupeChecklists(practice)
+    if (!current || (practice.updatedAt ?? '') > (current.updatedAt ?? '')) {
+      existingPractices.set(practice.id, deduped)
       practicesImported += 1
     }
   })
@@ -155,4 +163,15 @@ export const importData = (
     practicesImported,
     data: result,
   }
+}
+
+// Remove duplicate checklists within a practice by id (first occurrence wins).
+const dedupeChecklists = (practice: Practice): Practice => {
+  const seen = new Set<string>()
+  const checklists = practice.checklists.filter(checklist => {
+    if (seen.has(checklist.id)) return false
+    seen.add(checklist.id)
+    return true
+  })
+  return { ...practice, checklists }
 }

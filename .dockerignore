@@ -10,6 +10,7 @@ pnpm-debug.log*
 # Build outputs
 dist/
 build/
+web-build/
 *.tgz
 *.tar.gz
 
@@ -22,8 +23,6 @@ build/
 
 # Expo
 .expo/
-dist/
-web-build/
 
 # Logs
 *.log
@@ -109,18 +108,9 @@ app.config.json
 *.p12
 *.key
 *.mobileprovision
-*.log
 
 # Expo web
-web-build/
-*.ts
-*.tsx
-*.js
-*.jsx
-*.json
-*.md
-*.yml
-*.yaml
+# (web-build/ already ignored above)
 
 # Docker specific
 .dockerignore

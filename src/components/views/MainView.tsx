@@ -10,6 +10,7 @@ import { SwipeableRow } from '../common/SwipeableRow';
 import { Fab } from '../common/Fab';
 import { HeatIndexIndicator } from '../common/HeatIndexIndicator';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { PALETTE } from '../../utils/outdoorColors';
 
 type NavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
 
@@ -26,19 +27,17 @@ const MainView = () => {
       practices = practices.filter(practice => practice.teamId === selectedTeam);
     }
     
-    // Sort by date (most recent first)
-    return practices.sort((a, b) => 
+    // Sort by date (most recent first) without mutating the source array
+    return [...practices].sort((a, b) => 
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
   }, [state.data.data.practices, selectedTeam]);
 
   const handlePracticePress = (practiceId: string) => {
-    console.log('[MainView.handlePracticePress] practiceId=', practiceId);
     navigation.navigate('PracticeDetail', { practiceId });
   };
 
   const handleAddPractice = () => {
-    console.log('[MainView.handleAddPractice]');
     navigation.navigate('PracticeForm', {});
   };
 
@@ -110,14 +109,9 @@ const MainView = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="calendar-outline" size={48} color="#9ca3af" />
+      <Ionicons name="calendar-outline" size={48} color={PALETTE.NEUTRAL_400} />
       <Text style={styles.emptyText}>
-        {filteredPractices.length === 0 
-          ? selectedTeam 
-            ? 'No practices found' 
-            : 'No practices yet'
-          : 'No practices found'
-        }
+        {selectedTeam ? 'No practices found' : 'No practices yet'}
       </Text>
     </View>
   );
@@ -196,11 +190,7 @@ const MainView = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#f8fafc',
-    flex: 1,
-  },
-  safeArea: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: PALETTE.GRAY_50,
     flex: 1,
   },
   emptyContainer: {
@@ -210,7 +200,7 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptyText: {
-    color: '#6b7280',
+    color: PALETTE.TEXT_SECONDARY,
     fontSize: 16,
     marginTop: 8,
     textAlign: 'center',
@@ -220,22 +210,22 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   filterLabel: {
-    color: '#374151',
+    color: PALETTE.TEXT_STRONG,
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
   },
   header: {
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderBottomColor: '#e5e7eb',
+    backgroundColor: PALETTE.WHITE,
+    borderBottomColor: PALETTE.NEUTRAL_200,
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
   },
   headerTitle: {
-    color: '#1f2937',
+    color: PALETTE.TEXT_DEFAULT,
     fontSize: 24,
     fontWeight: 'bold',
   },
@@ -243,26 +233,26 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   practiceCard: {
-    backgroundColor: 'white',
+    backgroundColor: PALETTE.WHITE,
     borderRadius: 12,
     elevation: 2,
     marginBottom: 12,
     marginHorizontal: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   practiceCoach: {
-    color: '#6b7280',
+    color: PALETTE.TEXT_SECONDARY,
     fontSize: 14,
   },
   practiceDate: {
     alignItems: 'flex-start',
   },
   practiceDateText: {
-    color: '#6b7280',
+    color: PALETTE.TEXT_SECONDARY,
     fontSize: 14,
   },
   practiceDetails: {
@@ -280,7 +270,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   practiceLocation: {
-    color: '#1f2937',
+    color: PALETTE.TEXT_DEFAULT,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 4,
@@ -290,14 +280,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
   },
   practiceStatsText: {
-    color: '#6b7280',
+    color: PALETTE.TEXT_SECONDARY,
     fontSize: 14,
     marginRight: 8,
   },
+  safeArea: {
+    backgroundColor: PALETTE.GRAY_50,
+    flex: 1,
+  },
   teamButton: {
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderColor: '#e5e7eb',
+    backgroundColor: PALETTE.NEUTRAL_100,
+    borderColor: PALETTE.NEUTRAL_200,
     borderRadius: 20,
     borderWidth: 1,
     flexDirection: 'row',
@@ -307,16 +301,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   teamButtonActive: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+    backgroundColor: PALETTE.BLUE_500,
+    borderColor: PALETTE.BLUE_500,
   },
   teamButtonText: {
-    color: '#374151',
+    color: PALETTE.TEXT_STRONG,
     fontSize: 14,
     marginLeft: 6,
   },
   teamButtonTextActive: {
-    color: 'white',
+    color: PALETTE.WHITE,
   },
   teamColor: {
     borderRadius: 6,

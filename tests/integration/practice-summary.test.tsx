@@ -70,7 +70,7 @@ describe('Heat Index Practice Summary Integration', () => {
         }
       }));
 
-      const { getByText, getAllByText } = render(
+      const { getAllByText } = render(
         <AppProvider>
           <PracticeDetailView
             navigation={mockNavigation}

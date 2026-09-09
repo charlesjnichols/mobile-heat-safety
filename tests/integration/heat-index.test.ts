@@ -344,7 +344,7 @@ describe('Heat Index Calculation Integration', () => {
       (FileSystem.writeAsStringAsync as jest.Mock).mockResolvedValue(undefined);
       
       await FileSystem.writeAsStringAsync(
-        `${FileSystem.documentDirectory}heat-safety-export.json`,
+        `heat-safety-export.json`,
         JSON.stringify(exportData, null, 2)
       );
       
@@ -372,7 +372,7 @@ describe('Heat Index Calculation Integration', () => {
       (FileSystem.readAsStringAsync as jest.Mock).mockResolvedValue(JSON.stringify(importData));
       
       const fileContent = await FileSystem.readAsStringAsync(
-        `${FileSystem.documentDirectory}heat-safety-import.json`
+        `heat-safety-import.json`
       );
       
       expect(fileContent).toBeDefined();

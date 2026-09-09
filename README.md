@@ -56,6 +56,28 @@ npm run web
 - `specs/` — feature specification documents
 - `docs/windows-development.md` — Windows development notes
 
+## PWA & Web Deployment
+
+`npm run build:web` produces a PWA-ready `dist/` with a web app manifest
+(`manifest.json`), a service worker (`sw.js`), home-screen icons, and the app
+shell. The service worker enables offline launch and updates; all data remains
+local (there is no backend and no telemetry).
+
+Serve `dist/` over HTTPS (service workers require a secure context) with these
+recommended response headers:
+
+- `index.html` (and `sw.js`): `Cache-Control: no-cache` so clients fetch the
+  newest version and pick up the updated service worker.
+- Hashed static assets under `/_expo/static/`, `/assets/`, icons, and
+  `manifest.json`: `Cache-Control: public, max-age=31536000, immutable`.
+
+Recommended `Content-Security-Policy` to preserve the local-only privacy model
+(no third-party origins, scripts, or trackers):
+
+```
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'
+```
+
 ## License
 
 This project is not yet licensed.

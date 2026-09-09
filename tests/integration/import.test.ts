@@ -30,6 +30,7 @@ const validData: HeatSafetyData = {
         sport: 'Soccer',
         contactInfo: 'coach@example.com',
         teamId: 'team-1',
+        notes: '',
         checklists: [
           {
             id: 'c1',

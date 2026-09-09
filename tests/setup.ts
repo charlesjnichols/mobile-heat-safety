@@ -8,13 +8,16 @@ const mockAsyncStorage = {
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
 // Mock React Native modules
-jest.mock('react-native-reanimated', () => ({
-  ...require('react-reanimated'),
-  useSharedValue: jest.fn(() => 0),
-  useAnimatedStyle: jest.fn(() => ({})),
-  withTiming: jest.fn((value) => value),
-  withSpring: jest.fn((value) => value),
-}));
+jest.mock('react-native-reanimated', () => {
+  const real = jest.requireActual('react-native-reanimated');
+  return {
+    ...real,
+    useSharedValue: jest.fn(() => 0),
+    useAnimatedStyle: jest.fn(() => ({})),
+    withTiming: jest.fn((value) => value),
+    withSpring: jest.fn((value) => value),
+  };
+});
 
 
 

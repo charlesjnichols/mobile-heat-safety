@@ -25,6 +25,11 @@ export const loadData = async (): Promise<HeatSafetyData> => {
         console.log('Data version mismatch, using default data');
         return getDefaultData();
       }
+      // Shape-validate nested fields so malformed payloads never crash getTeams/getPractices
+      if (!isValidDataShape(parsed)) {
+        console.log('Malformed data shape, using default data');
+        return getDefaultData();
+      }
       return parsed;
     }
     return getDefaultData();
@@ -33,6 +38,17 @@ export const loadData = async (): Promise<HeatSafetyData> => {
     return getDefaultData();
   }
 };
+
+// Ensure the top-level nested collections are arrays of objects.
+const isValidDataShape = (data: HeatSafetyData): boolean => {
+  const collections = data?.data
+  if (!collections || !Array.isArray(collections.teams) || !Array.isArray(collections.practices)) {
+    return false
+  }
+  return collections.teams.every(isObject) && collections.practices.every(isObject)
+}
+
+const isObject = (value: unknown): boolean => typeof value === 'object' && value !== null && !Array.isArray(value)
 
 // Read-only utility functions for data access
 export const getTeams = async () => {
@@ -48,8 +64,13 @@ export const getPractices = async (teamId?: string) => {
     practices = practices.filter((practice: Practice) => practice.teamId === teamId);
   }
 
-  // Sort by date (most recent first)
-  return [...practices].sort((a: Practice, b: Practice) =>
-    new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  // Sort by date (most recent first); guard invalid dates so NaN compares deterministically
+  return [...practices].sort((a: Practice, b: Practice) => {
+    const aTime = new Date(a.date).getTime()
+    const bTime = new Date(b.date).getTime()
+    if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0
+    if (Number.isNaN(aTime)) return 1 // invalid dates sort last
+    if (Number.isNaN(bTime)) return -1
+    return bTime - aTime
+  });
 };

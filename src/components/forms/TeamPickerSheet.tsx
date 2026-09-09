@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import {
   View,
   Text,
@@ -8,9 +8,13 @@ import {
   StyleSheet,
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
-import { Team, APP_CONSTANTS } from '../../types'
+import { PALETTE } from '../../utils/outdoorColors'
+import { Team, APP_CONSTANTS, MainTabParamList } from '../../types'
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'
 
 const { COLORS, SPACING, FONT_SIZES } = APP_CONSTANTS
+
+type TeamPickerNavigation = BottomTabNavigationProp<MainTabParamList>
 
 interface TeamPickerSheetProps {
   teams: Team[]
@@ -27,20 +31,20 @@ const TeamPickerSheet: React.FC<TeamPickerSheetProps> = ({
   onSelect,
   onClose,
 }) => {
-  const navigation = useNavigation()
+  const navigation = useNavigation<TeamPickerNavigation>()
 
   const sortedTeams = useMemo(
     () => [...teams].sort((a, b) => a.name.localeCompare(b.name)),
     [teams]
   )
 
-  const handleCreateTeam = () => {
+  const handleCreateTeam = useCallback(() => {
     onClose()
     // Navigate to the Teams tab, where a new team can be created.
-    ;(navigation as { navigate: (route: string) => void }).navigate('Teams')
-  }
+    navigation.navigate('Teams')
+  }, [navigation, onClose])
 
-  const renderTeam = ({ item }: { item: Team }) => {
+  const renderTeam = useCallback(({ item }: { item: Team }) => {
     const isSelected = item.id === selectedTeamId
     return (
       <TouchableOpacity
@@ -63,7 +67,7 @@ const TeamPickerSheet: React.FC<TeamPickerSheetProps> = ({
         {isSelected && <Text style={styles.checkmark}>✓</Text>}
       </TouchableOpacity>
     )
-  }
+  }, [onSelect, selectedTeamId])
 
   return (
     <Modal
@@ -81,7 +85,7 @@ const TeamPickerSheet: React.FC<TeamPickerSheetProps> = ({
           style={styles.backdrop}
           onPress={onClose}
           accessible={true}
-          accessibilityLabel="Close team selector"
+          accessibilityLabel="Dismiss team selector"
           accessibilityRole="button"
           testID="team-picker-backdrop"
         />
@@ -172,7 +176,7 @@ const styles = StyleSheet.create({
     flexGrow: 0,
   },
   modalOverlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: PALETTE.OVERLAY,
     flex: 1,
     justifyContent: 'flex-end',
   },

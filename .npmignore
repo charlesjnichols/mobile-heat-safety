@@ -50,10 +50,6 @@ Thumbs.db
 junit.xml
 test-results/
 
-# Temporary files
-tmp/
-temp/
-
 # Cache
 .cache/
 .eslintcache
@@ -100,7 +96,6 @@ app.config.json
 *.p12
 *.key
 *.mobileprovision
-*.log
 
 # Expo web
 web-build/
@@ -108,20 +103,4 @@ web-build/
 # Minified files
 *.min.js
 *.min.map
-
-# Source maps
 *.map
-
-# TypeScript declaration files
-*.d.ts
-
-# Jest coverage
-coverage/
-
-# Testing
-test-results/
-junit.xml
-
-# Temporary files
-tmp/
-temp/

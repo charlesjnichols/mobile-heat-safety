@@ -1,6 +1,27 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 import { ColorCode, RiskBadge, HeatIndexSummary } from '../../src/components/common/ColorCode';
+import { BaseButton } from '../../src/components/common/BaseComponents';
+
+describe('BaseButton Accessibility', () => {
+  it('should expose a busy accessibility state while loading', () => {
+    const { getByLabelText } = render(
+      <BaseButton title="Save" loading={true} onPress={() => {}} />
+    );
+
+    const button = getByLabelText('Save');
+    expect(button.props.accessibilityState).toMatchObject({ disabled: true, busy: true });
+  });
+
+  it('should expose a disabled accessibility state when disabled', () => {
+    const { getByLabelText } = render(
+      <BaseButton title="Save" disabled={true} onPress={() => {}} />
+    );
+
+    const button = getByLabelText('Save');
+    expect(button.props.accessibilityState).toMatchObject({ disabled: true, busy: false });
+  });
+});
 
 describe('ColorCode Component', () => {
   const mockHeatIndex = 85;

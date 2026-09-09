@@ -198,8 +198,10 @@ export const APP_CONSTANTS = {
   },
   ACTION_TAKEN_OPTIONS: [
     'No restrictions',
-    'Modified practice (reduced intensity or duration)',
-    'Rest and Hydration breaks',
+    'Water breaks every 30 minutes',
+    'Water breaks every 20 minutes',
+    'Modified practice (reduced intensity)',
+    'Modified practice (shortened duration)',
     'Cancel outdoor practice',
     'Move to indoor facility',
     'Other (specify)',

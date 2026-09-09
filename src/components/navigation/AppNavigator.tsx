@@ -4,7 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { RootStackParamList } from '../../types';
+import { RootStackParamList, MainTabParamList } from '../../types';
 
 // Import views
 import MainView from '../views/MainView';
@@ -16,7 +16,7 @@ import PracticeForm from '../forms/PracticeForm';
 import ChecklistForm from '../forms/ChecklistForm';
 
 // Tab Navigator
-const Tab = createBottomTabNavigator();
+const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TabNavigator = () => {
   return (
@@ -31,10 +31,8 @@ const TabNavigator = () => {
             iconName = focused ? 'people' : 'people-outline';
           } else if (route.name === 'Safety') {
             iconName = focused ? 'shield-checkmark' : 'shield-checkmark-outline';
-          } else if (route.name === 'Settings') {
-            iconName = focused ? 'settings' : 'settings-outline';
           } else {
-            iconName = 'ellipse';
+            iconName = focused ? 'settings' : 'settings-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;

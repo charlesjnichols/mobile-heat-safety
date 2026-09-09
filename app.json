@@ -23,7 +23,19 @@
     "web": {
       "name": "Mobile Heat Safety Tracker",
       "shortName": "HeatSafety",
-      "lang": "en"
+      "lang": "en",
+      "description": "Heat safety tracker for recording checklist entries during sports practices.",
+      "scope": "/mobile-coach-heat-safety/",
+      "themeColor": "#3b82f6",
+      "backgroundColor": "#ffffff",
+      "display": "standalone",
+      "orientation": "portrait",
+      "startUrl": "/mobile-coach-heat-safety/",
+      "barStyle": "black-translucent"
+    },
+    "experiments": {
+      "baseUrl": "/mobile-coach-heat-safety/",
+      "typedRoutes": false
     },
     "plugins": [
       "expo-document-picker",

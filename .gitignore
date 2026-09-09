@@ -8,6 +8,7 @@ pnpm-debug.log*
 # Build outputs
 dist/
 build/
+web-build/
 *.tgz
 *.tar.gz
 
@@ -20,8 +21,6 @@ build/
 
 # Expo
 .expo/
-dist/
-web-build/
 
 # Logs
 *.log
@@ -46,6 +45,7 @@ coverage/
 .opencode/
 .specify/
 specs
+.agents
 
 # OS
 .DS_Store
@@ -74,6 +74,7 @@ guides/
 *.tsbuildinfo
 
 # Package manager lock files
+package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -110,7 +111,6 @@ app.config.json
 *.p12
 *.key
 *.mobileprovision
-*.log
 
 # Expo web
-web-build/
+# (web-build/ already ignored above)

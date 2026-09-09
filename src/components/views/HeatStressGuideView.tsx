@@ -15,6 +15,7 @@ import {
   GuideCondition,
 } from '../../utils/heatStressGuide'
 import { HEAT_INDEX_COLORS } from '../../utils/outdoorColors'
+import { PALETTE } from '../../utils/outdoorColors'
 
 // Map band severity to high-contrast outdoor color tokens.
 const SEVERITY_STYLES: Record<
@@ -59,7 +60,7 @@ const BandCard = ({ band }: { band: ConditionBand }) => {
       accessibilityLabel={accessibilityLabel}
     >
       <View style={[styles.bandHeader, { backgroundColor: severity.backgroundColor }]}>
-        <Ionicons name={severity.icon} size={22} color="#ffffff" />
+        <Ionicons name={severity.icon} size={22} color={PALETTE.WHITE} />
         <Text style={styles.bandTitle}>{band.title}</Text>
         {band.codeLabel ? (
           <View style={styles.codeBadge} testID={`guide-band-${band.id}-code`}>
@@ -115,7 +116,7 @@ const HeatStressGuideView = () => {
           accessibilityRole="text"
           testID="guide-disclaimer"
         >
-          <Ionicons name="information-circle" size={20} color="#1e3a8a" />
+          <Ionicons name="information-circle" size={20} color={PALETTE.BLUE_900} />
           <Text style={styles.disclaimerText}>{heatIndexDisclaimer}</Text>
         </View>
 
@@ -137,7 +138,7 @@ const HeatStressGuideView = () => {
           testID="guide-call-911"
         >
           <View style={styles.call911Header}>
-            <Ionicons name="call" size={22} color="#ffffff" />
+            <Ionicons name="call" size={22} color={PALETTE.WHITE} />
             <Text style={styles.call911Title}>Call 911 if</Text>
           </View>
           {call911Triggers.map((trigger, index) => (
@@ -187,7 +188,7 @@ const ConditionCard = ({ condition }: { condition: GuideCondition }) => {
         <Text style={styles.conditionName}>{condition.name}</Text>
         {condition.isEmergency ? (
           <View style={styles.emergencyBadge} testID={`guide-condition-${condition.id}-emergency`}>
-            <Ionicons name="medical" size={14} color="#ffffff" />
+            <Ionicons name="medical" size={14} color={PALETTE.WHITE} />
             <Text style={styles.emergencyBadgeText}>MEDICAL EMERGENCY</Text>
           </View>
         ) : null}
@@ -205,7 +206,7 @@ const ConditionCard = ({ condition }: { condition: GuideCondition }) => {
 
       {condition.escalationNote ? (
         <View style={styles.escalationNote} testID={`guide-condition-${condition.id}-escalation`}>
-          <Ionicons name="call" size={16} color="#b91c1c" />
+          <Ionicons name="call" size={16} color={PALETTE.RED_700} />
           <Text style={styles.escalationNoteText}>{condition.escalationNote}</Text>
         </View>
       ) : null}
@@ -214,63 +215,15 @@ const ConditionCard = ({ condition }: { condition: GuideCondition }) => {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: '#f8fafc',
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: 32,
-  },
-  header: {
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderBottomColor: '#e5e7eb',
-    borderBottomWidth: 1,
-    padding: 16,
-  },
-  headerTitle: {
-    color: '#1f2937',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  disclaimerBanner: {
-    alignItems: 'center',
-    backgroundColor: '#dbeafe',
-    borderColor: '#bfdbfe',
-    borderRadius: 8,
-    borderWidth: 1,
-    flexDirection: 'row',
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 12,
-  },
-  disclaimerText: {
-    color: '#1e3a8a',
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-  sectionHeader: {
-    color: '#1f2937',
-    fontSize: 18,
-    fontWeight: '700',
-    marginHorizontal: 16,
-    marginTop: 24,
-    marginBottom: 8,
-  },
   bandCard: {
-    backgroundColor: 'white',
+    backgroundColor: PALETTE.WHITE,
     borderRadius: 12,
     borderWidth: 2,
     elevation: 2,
     marginBottom: 16,
     marginHorizontal: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -283,76 +236,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
+  bandSummary: {
+    color: PALETTE.TEXT_STRONG,
+    fontSize: 14,
+    marginBottom: 12,
+  },
   bandTitle: {
-    color: '#ffffff',
+    color: PALETTE.WHITE,
     flex: 1,
     fontSize: 16,
     fontWeight: '700',
     marginLeft: 8,
   },
-  codeBadge: {
-    backgroundColor: '#7f1d1d',
-    borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  codeBadgeText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  bandSummary: {
-    color: '#374151',
+  bulletDot: {
+    color: PALETTE.NEUTRAL_600,
     fontSize: 14,
-    marginBottom: 12,
+    marginRight: 8,
   },
-  responsibilityLabel: {
-    color: '#111827',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 4,
-    marginTop: 8,
+  bulletInverted: {
+    color: PALETTE.WHITE,
   },
   bulletRow: {
     alignItems: 'flex-start',
     flexDirection: 'row',
     marginBottom: 4,
   },
-  bulletDot: {
-    color: '#4b5563',
-    fontSize: 14,
-    marginRight: 8,
-  },
   bulletText: {
-    color: '#374151',
+    color: PALETTE.TEXT_STRONG,
     flex: 1,
     fontSize: 14,
     lineHeight: 20,
   },
-  bulletInverted: {
-    color: '#ffffff',
-  },
-  topicCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    elevation: 1,
-    marginBottom: 12,
-    marginHorizontal: 16,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-  },
-  topicTitle: {
-    color: '#111827',
-    fontSize: 16,
-    fontWeight: '700',
-    marginBottom: 8,
-  },
   call911Block: {
-    backgroundColor: '#b91c1c',
+    backgroundColor: PALETTE.RED_700,
     borderRadius: 12,
     marginBottom: 16,
     marginHorizontal: 16,
@@ -364,25 +280,37 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   call911Title: {
-    color: '#ffffff',
+    color: PALETTE.WHITE,
     fontSize: 16,
     fontWeight: '700',
     marginLeft: 8,
   },
+  codeBadge: {
+    backgroundColor: PALETTE.RED_900,
+    borderRadius: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  codeBadgeText: {
+    color: PALETTE.WHITE,
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
   conditionCard: {
-    backgroundColor: 'white',
+    backgroundColor: PALETTE.WHITE,
     borderRadius: 12,
     elevation: 1,
     marginBottom: 12,
     marginHorizontal: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
   conditionCardEmergency: {
-    borderColor: '#b91c1c',
+    borderColor: PALETTE.RED_700,
     borderWidth: 2,
   },
   conditionHeader: {
@@ -391,43 +319,67 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   conditionName: {
-    color: '#111827',
+    color: PALETTE.TEXT_DARK,
     flex: 1,
     fontSize: 17,
     fontWeight: '700',
   },
-  emergencyBadge: {
-    alignItems: 'center',
-    backgroundColor: '#b91c1c',
-    borderRadius: 4,
-    flexDirection: 'row',
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-  },
-  emergencyBadgeText: {
-    color: '#ffffff',
-    fontSize: 10,
-    fontWeight: '700',
-    marginLeft: 4,
-  },
   conditionSubheading: {
-    color: '#4b5563',
+    color: PALETTE.NEUTRAL_600,
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 4,
     marginTop: 8,
     textTransform: 'uppercase',
   },
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingBottom: 32,
+  },
+  disclaimerBanner: {
+    alignItems: 'center',
+    backgroundColor: PALETTE.BLUE_100,
+    borderColor: PALETTE.BLUE_200,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 16,
+    padding: 12,
+  },
+  disclaimerText: {
+    color: PALETTE.BLUE_900,
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  emergencyBadge: {
+    alignItems: 'center',
+    backgroundColor: PALETTE.RED_700,
+    borderRadius: 4,
+    flexDirection: 'row',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+  },
+  emergencyBadgeText: {
+    color: PALETTE.WHITE,
+    fontSize: 10,
+    fontWeight: '700',
+    marginLeft: 4,
+  },
   escalationNote: {
     alignItems: 'flex-start',
-    backgroundColor: '#fee2e2',
+    backgroundColor: PALETTE.RED_100,
     borderRadius: 6,
     flexDirection: 'row',
     marginTop: 12,
     padding: 8,
   },
   escalationNoteText: {
-    color: '#b91c1c',
+    color: PALETTE.RED_700,
     flex: 1,
     fontSize: 13,
     fontWeight: '600',
@@ -438,10 +390,59 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   footerText: {
-    color: '#6b7280',
+    color: PALETTE.TEXT_SECONDARY,
     fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    backgroundColor: PALETTE.WHITE,
+    borderBottomColor: PALETTE.NEUTRAL_200,
+    borderBottomWidth: 1,
+    padding: 16,
+  },
+  headerTitle: {
+    color: PALETTE.TEXT_DEFAULT,
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  responsibilityLabel: {
+    color: PALETTE.TEXT_DARK,
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  safeArea: {
+    backgroundColor: PALETTE.GRAY_50,
+    flex: 1,
+  },
+  sectionHeader: {
+    color: PALETTE.TEXT_DEFAULT,
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+    marginHorizontal: 16,
+    marginTop: 24,
+  },
+  topicCard: {
+    backgroundColor: PALETTE.WHITE,
+    borderRadius: 12,
+    elevation: 1,
+    marginBottom: 12,
+    marginHorizontal: 16,
+    padding: 16,
+    shadowColor: PALETTE.SHADOW_BLACK,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  topicTitle: {
+    color: PALETTE.TEXT_DARK,
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
   },
 })
 

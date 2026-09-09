@@ -7,10 +7,6 @@ node_modules/
 dist/
 build/
 
-# Logs
-*.log
-logs/
-
 # Runtime data
 pids
 *.pid
@@ -91,7 +87,6 @@ app.config.json
 *.p12
 *.key
 *.mobileprovision
-*.log
 
 # Expo web
 web-build/

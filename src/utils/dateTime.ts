@@ -156,7 +156,8 @@ export const shiftMonth = (
 ): { year: number; month: number } => {
   const total = year * 12 + (month - 1) + delta
   const newYear = Math.floor(total / 12)
-  const newMonth = (total % 12) + 1
+  // Handle negative months correctly: ((total % 12) + 12) % 12 yields 0-11.
+  const newMonth = ((total % 12) + 12) % 12 + 1
   return { year: newYear, month: newMonth }
 }
 

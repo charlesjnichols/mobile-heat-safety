@@ -61,6 +61,7 @@ module.exports = {
         "@typescript-eslint/no-explicit-any": "off",
         "react-hooks/exhaustive-deps": "off",
         "@typescript-eslint/no-var-requires": "off",
+        "@typescript-eslint/no-require-imports": "off",
         "react/jsx-no-undef": "off",
         "react-native/no-inline-styles": "off",
         "react-native/no-color-literals": "off"

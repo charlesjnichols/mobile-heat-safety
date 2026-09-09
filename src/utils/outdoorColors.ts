@@ -200,6 +200,92 @@ export const SHADOWS = {
   },
 } as const;
 
+// Flat palette for component styles (single source of truth).
+// Reuses the named constants above; keys are the flat names components import.
+export const PALETTE = {
+  WHITE: OUTDOOR_COLORS.NEUTRAL.WHITE,
+  BLACK: OUTDOOR_COLORS.NEUTRAL.BLACK,
+  TRANSPARENT: 'transparent',
+
+  // Tailwind slate ramp (UI surfaces/text).
+  GRAY_50: OUTDOOR_COLORS.NEUTRAL.GRAY_50,
+  GRAY_100: OUTDOOR_COLORS.NEUTRAL.GRAY_100,
+  GRAY_200: OUTDOOR_COLORS.NEUTRAL.GRAY_200,
+  GRAY_300: OUTDOOR_COLORS.NEUTRAL.GRAY_300,
+  GRAY_400: OUTDOOR_COLORS.NEUTRAL.GRAY_400,
+  GRAY_500: OUTDOOR_COLORS.NEUTRAL.GRAY_500,
+  GRAY_600: OUTDOOR_COLORS.NEUTRAL.GRAY_600,
+  GRAY_700: OUTDOOR_COLORS.NEUTRAL.GRAY_700,
+  GRAY_800: OUTDOOR_COLORS.NEUTRAL.GRAY_800,
+  GRAY_900: OUTDOOR_COLORS.NEUTRAL.GRAY_900,
+
+  // Alternate neutral ramp used across forms/lists.
+  NEUTRAL_50: '#f9fafb',
+  NEUTRAL_100: '#f3f4f6',
+  NEUTRAL_200: '#e5e7eb',
+  NEUTRAL_300: '#d1d5db',
+  NEUTRAL_400: '#9ca3af',
+  NEUTRAL_500: '#6b7280',
+  NEUTRAL_600: '#4b5563',
+  NEUTRAL_700: '#374151',
+  NEUTRAL_800: '#1f2937',
+  NEUTRAL_900: '#111827',
+
+  // Semantic text.
+  TEXT_DEFAULT: '#1f2937',
+  TEXT_SECONDARY: '#6b7280',
+  TEXT_MUTED: '#9ca3af',
+  TEXT_DARK: '#111827',
+  TEXT_STRONG: '#374151',
+  TEXT_NEUTRAL: '#333333',
+
+  // Brand / action.
+  BLUE_500: OUTDOOR_COLORS.PRIMARY.LIGHT,
+  BLUE_600: '#007bff',
+  BLUE_700: OUTDOOR_COLORS.PRIMARY.HOVER,
+  BLUE_800: OUTDOOR_COLORS.PRIMARY.MAIN,
+  BLUE_900: OUTDOOR_COLORS.PRIMARY.DARK,
+  BLUE_100: '#dbeafe',
+  BLUE_200: '#bfdbfe',
+
+  GREEN_500: OUTDOOR_COLORS.SUCCESS.LIGHT,
+  GREEN_600: OUTDOOR_COLORS.SUCCESS.HOVER,
+  EMERALD_500: '#10b981',
+
+  RED_500: OUTDOOR_COLORS.DANGER.LIGHT,
+  RED_600: OUTDOOR_COLORS.DANGER.HOVER,
+  RED_700: OUTDOOR_COLORS.DANGER.MAIN,
+  RED_800: '#991b1b',
+  RED_900: OUTDOOR_COLORS.DANGER.DARK,
+  RED_BOOTSTRAP: '#dc3545',
+  RED_50: '#fef2f2',
+  RED_100: '#fee2e2',
+
+  AMBER_500: OUTDOOR_COLORS.WARNING.MAIN,
+  AMBER_400: OUTDOOR_COLORS.WARNING.LIGHT,
+  AMBER_600: OUTDOOR_COLORS.WARNING.HOVER,
+  ORANGE_500: '#f97316',
+  ORANGE_600: '#ea580c',
+  ORANGE_700: '#c2410c',
+
+  // Legacy / third-party grays.
+  GRAY_MID: '#6c757d',
+  GRAY_SOFT: '#f8f9fa',
+  GRAY_NEUTRAL: '#333333',
+
+  // Translucent black overlays.
+  BLACK_10: 'rgba(0,0,0,0.1)',
+  BLACK_30: 'rgba(0, 0, 0, 0.3)',
+
+  // Overlays / modal scrims.
+  OVERLAY: 'rgba(0, 0, 0, 0.5)',
+
+  // Shadows.
+  SHADOW_BLACK: '#000',
+} as const;
+
+export type PaletteKey = keyof typeof PALETTE;
+
 // High-contrast color utility functions
 export const OutdoorColors = {
   // Get heat index color with high contrast

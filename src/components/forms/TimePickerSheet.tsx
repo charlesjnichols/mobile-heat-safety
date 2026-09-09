@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   FlatList,
 } from 'react-native'
 import { APP_CONSTANTS } from '../../types'
+import { PALETTE } from '../../utils/outdoorColors'
 import {
   formatTime,
   parseTime,
@@ -45,6 +46,18 @@ const TimePickerSheet: React.FC<TimePickerSheetProps> = ({
   const [hour12, setHour12] = useState(initial12.hour)
   const [minute, setMinute] = useState(initial?.minute ?? 0)
   const [period, setPeriod] = useState<AmPm>(initial12.period)
+
+  // Re-sync picker state whenever the sheet opens or the initial time changes,
+  // so a previously edited value does not persist into the next open.
+  useEffect(() => {
+    if (visible) {
+      const sync = parseTime(initialTime) ?? parseTime(nowTimeString())
+      const sync12 = to12Hour(sync?.hour ?? 0)
+      setHour12(sync12.hour)
+      setMinute(sync?.minute ?? 0)
+      setPeriod(sync12.period)
+    }
+  }, [visible, initialTime])
 
   const handleConfirm = () => {
     const hour24 = from12Hour(hour12, period)
@@ -222,7 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modalOverlay: {
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: PALETTE.OVERLAY,
     flex: 1,
     justifyContent: 'flex-end',
   },

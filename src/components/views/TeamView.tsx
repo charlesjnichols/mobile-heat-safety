@@ -3,10 +3,12 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, Alert } from
 import { Ionicons } from '@expo/vector-icons'
 import { useAppContext } from '../../context/AppContext'
 import { Team, TeamFormData } from '../../types'
+import { generateTeamId } from '../../utils/teamManagement'
 import { TeamForm } from '../forms/TeamForm'
 import { SwipeableRow } from '../common/SwipeableRow'
 import { Fab } from '../common/Fab'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { PALETTE } from '../../utils/outdoorColors'
 
 const TeamView = () => {
   const { state, dispatch } = useAppContext()
@@ -28,27 +30,32 @@ const TeamView = () => {
   }
 
   const handleSubmitTeam = (values: TeamFormData) => {
-    if (editingTeam) {
-      dispatch({
-        type: 'UPDATE_TEAM',
-        payload: {
-          ...editingTeam,
+    try {
+      if (editingTeam) {
+        dispatch({
+          type: 'UPDATE_TEAM',
+          payload: {
+            ...editingTeam,
+            name: values.name,
+            color: values.color,
+            updatedAt: new Date().toISOString(),
+          },
+        })
+      } else {
+        const newTeam: Team = {
+          id: generateTeamId(),
           name: values.name,
           color: values.color,
+          createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-        },
-      })
-    } else {
-      const newTeam: Team = {
-        id: `team-${Date.now()}`,
-        name: values.name,
-        color: values.color,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        }
+        dispatch({ type: 'ADD_TEAM', payload: newTeam })
       }
-      dispatch({ type: 'ADD_TEAM', payload: newTeam })
+      setFormVisible(false)
+    } catch (err) {
+      console.error('Error saving team:', err)
+      Alert.alert('Error', 'Unable to save team. Please try again.')
     }
-    setFormVisible(false)
   }
 
   const handleDeleteTeam = (team: Team) => {
@@ -103,7 +110,7 @@ const TeamView = () => {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="people-outline" size={48} color="#9ca3af" />
+      <Ionicons name="people-outline" size={48} color={PALETTE.NEUTRAL_400} />
       <Text style={styles.emptyText}>No teams yet</Text>
       <Text style={styles.emptySubText}>Create teams to organize your practices</Text>
     </View>
@@ -155,12 +162,8 @@ const TeamView = () => {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    backgroundColor: '#f8fafc',
-    flex: 1,
-  },
   container: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: PALETTE.GRAY_50,
     flex: 1,
   },
   emptyContainer: {
@@ -170,49 +173,53 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   emptySubText: {
-    color: '#9ca3af',
+    color: PALETTE.NEUTRAL_400,
     fontSize: 14,
     lineHeight: 20,
     marginTop: 4,
     textAlign: 'center',
   },
   emptyText: {
-    color: '#6b7280',
+    color: PALETTE.TEXT_SECONDARY,
     fontSize: 18,
     marginTop: 8,
     textAlign: 'center',
   },
   header: {
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderBottomColor: '#e5e7eb',
+    backgroundColor: PALETTE.WHITE,
+    borderBottomColor: PALETTE.NEUTRAL_200,
     borderBottomWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 16,
   },
   headerTitle: {
-    color: '#1f2937',
+    color: PALETTE.TEXT_DEFAULT,
     fontSize: 24,
     fontWeight: 'bold',
   },
   listContent: {
     paddingBottom: 20,
   },
+  safeArea: {
+    backgroundColor: PALETTE.GRAY_50,
+    flex: 1,
+  },
   teamCard: {
-    backgroundColor: 'white',
+    backgroundColor: PALETTE.WHITE,
     borderRadius: 12,
     elevation: 2,
     marginBottom: 12,
     marginHorizontal: 16,
     padding: 16,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   teamColor: {
-    borderColor: '#e5e7eb',
+    borderColor: PALETTE.NEUTRAL_200,
     borderRadius: 12,
     borderWidth: 2,
     height: 24,
@@ -232,11 +239,11 @@ const styles = StyleSheet.create({
   },
   teamInfo: {
     alignItems: 'center',
-    flexDirection: 'row',
     flex: 1,
+    flexDirection: 'row',
   },
   teamName: {
-    color: '#1f2937',
+    color: PALETTE.TEXT_DEFAULT,
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 2,

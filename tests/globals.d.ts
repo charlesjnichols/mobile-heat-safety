@@ -8,7 +8,7 @@ declare global {
       toHaveMinTouchTarget(minSize?: number): R;
       toHaveProp(prop: string, value?: unknown): R;
       toHaveStyle(expectedStyle: Record<string, unknown>): R;
-      toHaveAccessibilityLabel(label?: string): R;
+      toHaveAccessibilityLabel(label: string): R;
       toHaveTextContent(expected: string): R;
     }
   }

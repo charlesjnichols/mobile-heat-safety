@@ -1,20 +1,8 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { FlatList, View, Text, StyleSheet, ListRenderItem } from 'react-native';
+import { FlatList, View, Text, StyleSheet, ListRenderItem, Image } from 'react-native';
+import { PALETTE } from '../utils/outdoorColors';
 
 // Performance optimization hooks and utilities
-
-/**
- * Custom hook for memoizing expensive calculations
- * @param callback - The function to memoize
- * @param dependencies - Dependencies array for the callback
- * @returns Memoized callback function
- */
-export const useMemoizedCallback = <T extends (...args: never[]) => unknown>(
-  callback: T,
-  dependencies: React.DependencyList
-): T => {
-  return useCallback(callback, dependencies);
-};
 
 /**
  * Custom hook for debouncing values
@@ -49,14 +37,25 @@ export const useThrottle = <T extends (...args: unknown[]) => unknown>(
   limit: number
 ): T => {
   const inThrottle = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear any pending throttle timer on unmount to avoid leaks.
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   return useCallback(
     (...args: unknown[]) => {
       if (!inThrottle.current) {
         func(...args);
         inThrottle.current = true;
-        setTimeout(() => {
+        timerRef.current = setTimeout(() => {
           inThrottle.current = false;
+          timerRef.current = null;
         }, limit);
       }
     },
@@ -80,7 +79,6 @@ export const useVirtualizedList = <T,>({
   renderItem: ListRenderItem<T>;
   onLoadMore?: () => void;
 }) => {
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
   const handleLoadMore = useCallback(() => {
@@ -93,22 +91,19 @@ export const useVirtualizedList = <T,>({
     }
   }, [loading, onLoadMore]);
 
-  const getItemLayout = useCallback(
-    (_data: ArrayLike<T> | null | undefined, index: number) => ({
-      length: 80, // Fixed height for each item
-      offset: 80 * index,
-      index,
-    }),
-    []
-  );
+  const keyExtractor = useCallback((item: T, index: number) => {
+    if (item && typeof item === 'object' && 'id' in item && typeof (item as { id: unknown }).id === 'string') {
+      return (item as { id: string }).id;
+    }
+    return `${index}`;
+  }, []);
 
   return {
     FlatList: (
       <FlatList
         data={data}
         renderItem={renderItem}
-        keyExtractor={(item, index) => `${index}-${typeof item === 'object' ? JSON.stringify(item) : item}`}
-        getItemLayout={getItemLayout}
+        keyExtractor={keyExtractor}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}
         initialNumToRender={10}
@@ -119,8 +114,6 @@ export const useVirtualizedList = <T,>({
         ListFooterComponent={loading ? <LoadingSpinner /> : null}
       />
     ),
-    page,
-    setPage,
     loading,
   };
 };
@@ -302,52 +295,47 @@ export const optimizeImage = (uri: string, options: {
 /**
  * Preload images for better performance
  */
-export const preloadImages = (uris: string[]): Promise<void[]> => {
+export const preloadImages = (uris: string[]): Promise<boolean[]> => {
   return Promise.all(
     uris.map(uri => {
-      return new Promise<void>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error(`Failed to load image: ${uri}`));
-        img.src = optimizeImage(uri, { width: 100, height: 100 });
-      });
+      return Image.prefetch(optimizeImage(uri, { width: 100, height: 100 }));
     })
   );
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  spinner: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: '#3b82f6',
-    borderTopColor: 'transparent',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 14,
-    color: '#6b7280',
-  },
   errorContainer: {
-    padding: 20,
     alignItems: 'center',
-    backgroundColor: '#fef2f2',
+    backgroundColor: PALETTE.RED_50,
+    padding: 20,
+  },
+  errorDetails: {
+    color: PALETTE.RED_800,
+    fontSize: 14,
+    textAlign: 'center' as const,
   },
   errorText: {
+    color: PALETTE.RED_600,
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#dc2626',
     marginBottom: 8,
     textAlign: 'center' as const,
   },
-  errorDetails: {
+  loadingContainer: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    color: PALETTE.TEXT_SECONDARY,
     fontSize: 14,
-    color: '#991b1b',
-    textAlign: 'center' as const,
+    marginTop: 10,
+  },
+  spinner: {
+    borderColor: PALETTE.BLUE_500,
+    borderRadius: 20,
+    borderTopColor: PALETTE.TRANSPARENT,
+    borderWidth: 3,
+    height: 40,
+    width: 40,
   },
 });

@@ -2,6 +2,7 @@ import React, { useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert, Platform } from 'react-native';
 import { ColorCode, getRiskLevel, getRiskColor, getRecommendedAction, RiskLevel } from './ColorCode';
 import { HapticFeedback } from '../../utils/hapticFeedback';
+import { PALETTE } from '../../utils/outdoorColors';
 
 interface SafetyAlertProps {
   heatIndex: number;
@@ -32,33 +33,10 @@ export const SafetyAlert: React.FC<SafetyAlertProps> = ({
   testID
 }) => {
   const [previousRisk, setPreviousRisk] = React.useState<RiskLevel | null>(null);
-  const [hasAlerted, setHasAlerted] = React.useState(false);
+  const [alertedRisk, setAlertedRisk] = React.useState<RiskLevel | null>(null);
 
   // Determine current risk level
   const currentRisk = getRiskLevel(heatIndex);
-
-  // Alert on risk level change
-  useEffect(() => {
-    if (previousRisk !== null && currentRisk !== previousRisk && onRiskChange) {
-      onRiskChange(previousRisk, currentRisk);
-    }
-    setPreviousRisk(currentRisk);
-  }, [currentRisk, previousRisk, onRiskChange]);
-
-  // Trigger alerts for high-risk levels
-  useEffect(() => {
-    if (autoAlert && heatIndex > alertThreshold && !hasAlerted) {
-      triggerHighRiskAlert(currentRisk);
-      setHasAlerted(true);
-    }
-  }, [heatIndex, autoAlert, alertThreshold, currentRisk, hasAlerted]);
-
-  // Reset alert flag when risk level drops
-  useEffect(() => {
-    if (heatIndex <= alertThreshold) {
-      setHasAlerted(false);
-    }
-  }, [heatIndex, alertThreshold]);
 
   /**
    * Trigger haptic feedback and notification for high-risk conditions
@@ -74,8 +52,8 @@ export const SafetyAlert: React.FC<SafetyAlertProps> = ({
 
     hapticPatterns[risk]();
 
-    // Trigger visual alert (for web/platform compatibility)
-    if (Platform.OS === 'web' && risk === 'HIGH') {
+    // Trigger visual alert (for web/platform compatibility) for any risk above LOW
+    if (Platform.OS === 'web' && (risk === 'HIGH' || risk === 'EXTREME')) {
       Alert.alert(
         'Heat Safety Alert',
         `Heat index is ${risk}. ${getRecommendedAction(risk)}.`,
@@ -86,6 +64,30 @@ export const SafetyAlert: React.FC<SafetyAlertProps> = ({
       );
     }
   }, []);
+
+  // Alert on risk level change
+  useEffect(() => {
+    if (previousRisk !== null && currentRisk !== previousRisk && onRiskChange) {
+      onRiskChange(previousRisk, currentRisk);
+    }
+    setPreviousRisk(currentRisk);
+  }, [currentRisk, previousRisk, onRiskChange]);
+
+  // Trigger alerts for high-risk levels. Re-alerts when the risk escalates to a
+  // higher level (alertedRisk) so users are re-notified on worsening conditions.
+  useEffect(() => {
+    if (autoAlert && heatIndex > alertThreshold && currentRisk !== alertedRisk) {
+      triggerHighRiskAlert(currentRisk);
+      setAlertedRisk(currentRisk);
+    }
+  }, [heatIndex, autoAlert, alertThreshold, currentRisk, alertedRisk, triggerHighRiskAlert]);
+
+  // Reset alert flag when risk level drops
+  useEffect(() => {
+    if (heatIndex <= alertThreshold) {
+      setAlertedRisk(null);
+    }
+  }, [heatIndex, alertThreshold]);
 
   /**
    * Get current alert status
@@ -141,7 +143,7 @@ export const SafetyAlert: React.FC<SafetyAlertProps> = ({
   };
 
   // Render alert indicator when there's an active risk
-  if (alertStatus.hasAlert && heatIndex > alertThreshold) {
+  if (alertStatus.hasAlert) {
     return (
       <View
         style={[styles.alertContainer, alertStatusStyles[alertStatus.status]]}
@@ -279,18 +281,6 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     padding: 12,
   },
-  safeAlert: {
-    borderColor: '#22c55e',
-  },
-  moderateAlert: {
-    borderColor: '#eab308',
-  },
-  highAlert: {
-    borderColor: '#f97316',
-  },
-  extremeAlert: {
-    borderColor: '#dc2626',
-  },
   alertMessage: {
     fontSize: 14,
     fontWeight: '600',
@@ -305,63 +295,77 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
   },
-  badge_small: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
-  badge_medium: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+  badgeText: {
+    color: PALETTE.WHITE,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
   badge_large: {
     paddingHorizontal: 16,
     paddingVertical: 6,
   },
-  badgeText: {
-    color: 'white',
-    fontWeight: 'bold',
-    textAlign: 'center',
-    textTransform: 'uppercase',
+  badge_medium: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
   },
-  text_small: {
-    fontSize: 10,
-  },
-  text_medium: {
-    fontSize: 12,
-  },
-  text_large: {
-    fontSize: 14,
+  badge_small: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
   },
 
   // Summary styles
-  summaryContainer: {
-    borderRadius: 12,
-    borderWidth: 2,
-    marginVertical: 8,
+  container_large: {
+    padding: 20,
+  },
+  container_medium: {
     padding: 16,
   },
   container_small: {
     padding: 12,
   },
-  container_medium: {
-    padding: 16,
+
+  // Alert color variants
+  extremeAlert: {
+    borderColor: PALETTE.RED_600,
   },
-  container_large: {
-    padding: 20,
+  highAlert: {
+    borderColor: PALETTE.ORANGE_500,
+  },
+  moderateAlert: {
+    borderColor: PALETTE.AMBER_400,
+  },
+  name_large: {
+    fontSize: 18,
+  },
+  name_medium: {
+    fontSize: 16,
+  },
+  name_small: {
+    fontSize: 14,
   },
   practiceName: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  name_small: {
+  safeAlert: {
+    borderColor: PALETTE.GREEN_500,
+  },
+  summaryContainer: {
+    borderRadius: 12,
+    borderWidth: 2,
+    marginVertical: 8,
+    padding: 16,
+  },
+  text_large: {
     fontSize: 14,
   },
-  name_medium: {
-    fontSize: 16,
+  text_medium: {
+    fontSize: 12,
   },
-  name_large: {
-    fontSize: 18,
-  }
+  text_small: {
+    fontSize: 10,
+  },
 });

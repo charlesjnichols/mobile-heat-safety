@@ -14,6 +14,7 @@ import {
 import { useNavigation } from '@react-navigation/native'
 import { z } from 'zod'
 import { useAppContext } from '../../context/AppContext'
+import { generateId } from '../../utils/teamManagement'
 
 // Import types and utilities
 import { Practice } from '../../types'
@@ -68,7 +69,7 @@ const PracticeForm: React.FC<PracticeFormProps> = ({ route }) => {
       setFormData({
         date: editingPractice.date,
         location: editingPractice.location,
-        headCoach: editingPractice.headCoach,
+        headCoach: editingPractice.headCoach ?? '',
         teamId: editingPractice.teamId,
       })
     }
@@ -100,7 +101,7 @@ const PracticeForm: React.FC<PracticeFormProps> = ({ route }) => {
     setTouched({ ...touched, [field]: true })
 
     // Validate only the field that was blurred
-    const fieldSchema = PracticeFieldsSchema.pick({ [field]: true } as Record<string, true>)
+    const fieldSchema = PracticeFieldsSchema.pick({ [field]: true } as { [K in keyof typeof PracticeFieldsSchema.shape]?: true })
     const result = fieldSchema.safeParse({ [field]: formData[field as keyof typeof formData] })
 
     if (!result.success) {
@@ -152,7 +153,7 @@ const PracticeForm: React.FC<PracticeFormProps> = ({ route }) => {
 
       // Prepare practice data
       const practiceData: Practice = {
-        id: practiceId || `practice-${Date.now()}`,
+        id: practiceId || `practice-${generateId()}`,
         name: formData.location || 'Practice',
         date: formData.date,
         location: formData.location,

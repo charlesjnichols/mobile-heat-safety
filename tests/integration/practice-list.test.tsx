@@ -84,6 +84,7 @@ const mockPractices: Practice[] = [
     sport: 'Soccer',
     contactInfo: 'john@example.com',
     teamId: 'team-1',
+    notes: '',
     checklists: [
       {
         id: 'checklist-1',
@@ -110,6 +111,7 @@ const mockPractices: Practice[] = [
     sport: 'Soccer',
     contactInfo: 'jane@example.com',
     teamId: 'team-2',
+    notes: '',
     checklists: [
       {
         id: 'checklist-2',

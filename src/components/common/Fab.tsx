@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { HapticFeedback } from '../../utils/hapticFeedback';
+import { PALETTE } from '../../utils/outdoorColors';
 
 interface FabProps {
   onPress: () => void;
@@ -31,7 +32,7 @@ export const Fab: React.FC<FabProps> = ({
       testID={testID}
       activeOpacity={0.85}
     >
-      <Ionicons name={icon} size={28} color="#ffffff" />
+      <Ionicons name={icon} size={28} color={PALETTE.WHITE} />
     </TouchableOpacity>
   );
 };
@@ -39,7 +40,7 @@ export const Fab: React.FC<FabProps> = ({
 const styles = StyleSheet.create({
   fab: {
     alignItems: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: PALETTE.BLUE_500,
     borderRadius: 28,
     bottom: 24,
     elevation: 6,
@@ -47,7 +48,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'absolute',
     right: 24,
-    shadowColor: '#000',
+    shadowColor: PALETTE.SHADOW_BLACK,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
