@@ -2,7 +2,7 @@
   "name": "@coaching-code/mobile",
   "version": "1.0.0",
   "description": "Cross-platform mobile-native React Native application for recording heat safety checklists during sports practices",
-  "main": "node_modules/expo/AppEntry.js",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "start:android": "expo start --android",

@@ -24,11 +24,11 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run build:web
+      - run: npm run build:web --workspace @coaching-code/mobile
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: apps/mobile/dist
 
   deploy:
     needs: build
