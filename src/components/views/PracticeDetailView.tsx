@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   Alert,
   Share,
@@ -267,7 +267,7 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
       </View>
 
       {/* Practice Information */}
-      <ScrollView
+      <View
         style={styles.content}
       >
         {/* Practice Header */}
@@ -344,16 +344,16 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
           </View>
 
           {practice.checklists.length > 0 ? (
-            <>
-              {/* Checklist List */}
-              <View style={styles.checklistList} testID="checklist-list">
-                {practice.checklists.map((checklist) => (
-                  <React.Fragment key={checklist.id}>
-                    {renderChecklistItem({ item: checklist })}
-                  </React.Fragment>
-                ))}
-              </View>
-            </>
+            <FlatList
+              data={practice.checklists}
+              keyExtractor={(item: Checklist) => item.id}
+              renderItem={renderChecklistItem}
+              scrollEnabled={false}
+              showsVerticalScrollIndicator={false}
+              style={styles.checklistList}
+              contentContainerStyle={styles.checklistListContent}
+              testID="checklist-list"
+            />
           ) : (
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateText}>
@@ -365,7 +365,7 @@ const PracticeDetailView: React.FC<PracticeDetailViewProps> = (props) => {
             </View>
           )}
         </View>
-      </ScrollView>
+      </View>
 
       {/* Add Checklist FAB (anchored to bottom of screen) */}
       <Fab
@@ -414,6 +414,10 @@ const styles = StyleSheet.create({
     borderRadius: SPACING.SM,
     borderWidth: 1,
     overflow: 'hidden',
+  },
+  checklistListContent: {
+    // Ensure the last entry clears the FAB on whole-page scroll.
+    paddingBottom: SPACING.XL,
   },
   checklistSection: {
     marginBottom: SPACING.LG,

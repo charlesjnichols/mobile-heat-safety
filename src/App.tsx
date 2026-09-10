@@ -22,9 +22,27 @@ function OfflineBanner() {
   )
 }
 
+// Expo's web reset disables body scrolling (for internal <ScrollView> layouts).
+// Screens that intentionally render their content directly (whole-page scroll
+// instead of a nested scroller) need the page itself to scroll. Override it for
+// web only; native platforms are unaffected.
+function injectWebScrollReset() {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return
+  if (document.getElementById('web-scroll-reset')) return
+
+  const style = document.createElement('style')
+  style.id = 'web-scroll-reset'
+  style.textContent =
+    'body { overflow-y: auto; overflow-x: hidden; }'
+  document.head.appendChild(style)
+}
+
 export default function App() {
   useEffect(() => {
-    // PWA service worker registration (web only; no-op elsewhere).
+    // Allow whole-page scrolling on web (dev + prod, independent of the
+    // build-time index.html). Service worker registration (web only; no-op
+    // elsewhere).
+    injectWebScrollReset()
     registerServiceWorker()
   }, [])
 
