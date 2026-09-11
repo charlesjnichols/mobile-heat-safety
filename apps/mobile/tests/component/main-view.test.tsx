@@ -93,8 +93,7 @@ const mockPractices: Practice[] = [
 ];
 
 // Mock MainView component
-const MockMainView = () => {
-  const { state } = useAppContext();
+const MockMainView = () => {  const { state } = useAppContext();
   const [selectedTeam, setSelectedTeam] = React.useState<string | null>(null);
   const [searchQuery, setSearchQuery] = React.useState('');
 
@@ -248,8 +247,7 @@ const MockMainView = () => {
 };
 
 const styles = StyleSheet.create({
-  addButton: {
-    alignItems: 'center',
+  addButton: {    alignItems: 'center',
     backgroundColor: PALETTE.BLUE_500,
     borderRadius: 22,
     height: 44,
@@ -551,8 +549,10 @@ describe('MainView Component Tests', () => {
       expect(screen.getByText('Practices')).toBeTruthy();
     });
 
-    // Should show empty state
-    expect(screen.getByText('No practices found')).toBeTruthy();
+    // Should show empty state (wait for the async Dexie load to flush)
+    await waitFor(() => {
+      expect(screen.getByText('No practices found')).toBeTruthy();
+    });
     expect(screen.getByText('calendar-outline')).toBeTruthy();
   });
 

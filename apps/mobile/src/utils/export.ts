@@ -1,5 +1,5 @@
 import { HeatSafetyData, Practice, Team, PracticeFilters } from '../types'
-import { loadData } from './storage'
+import { db } from '../db/database'
 
 export interface ExportOptions {
   teamId?: string
@@ -102,7 +102,16 @@ export const serializeExport = (data: ExportResult): string => {
  * Export all persisted data (optionally filtered) as a JSON string.
  */
 export const exportData = async (options: ExportOptions = {}): Promise<string> => {
-  const data: HeatSafetyData = await loadData()
+  const teams = await db.teams.toArray()
+  const practices = await db.practices.toArray()
+  const data: HeatSafetyData = {
+    version: '1.0.0',
+    lastSync: null,
+    data: {
+      teams: teams.map(({ _syncStatus, ...team }) => team),
+      practices: practices.map(({ _syncStatus, ...practice }) => practice),
+    },
+  }
   const payload = buildExportData(data, options)
   return serializeExport(payload)
 }

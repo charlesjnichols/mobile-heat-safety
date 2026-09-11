@@ -43,9 +43,8 @@ export class HeatSafetyBackendStack extends cdk.Stack {
       environment: {
         TABLE_NAME: table.tableName,
       },
-      bundling: {
-        nodeModules: ['@coaching-code/domain'],
-      },
+      // No `nodeModules` — esbuild bundles sources (incl. workspace TS) locally,
+      // so Docker is not required for synth/deploy.
     })
 
     table.grantReadWriteData(syncLambda)

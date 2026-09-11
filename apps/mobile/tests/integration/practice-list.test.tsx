@@ -294,17 +294,18 @@ describe('Practice List Integration Tests', () => {
   });
 
   it('should handle loading state', async () => {
-    // Mock loading state
-    (loadData as jest.Mock).mockImplementation(() => {
+    // Mock loading state via the AsyncStorage source that the Dexie migration reads
+    const mockAsyncStorage = require('@react-native-async-storage/async-storage');
+    (mockAsyncStorage.getItem as jest.Mock).mockImplementation(() => {
       return new Promise(resolve => {
-        setTimeout(() => resolve({
+        setTimeout(() => resolve(JSON.stringify({
           version: '1.0.0',
           lastSync: null,
           data: {
             teams: mockTeams,
             practices: mockPractices,
           },
-        }), 100);
+        })), 100);
       });
     });
 

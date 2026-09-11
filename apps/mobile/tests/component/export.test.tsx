@@ -3,8 +3,8 @@ import { render, fireEvent, waitFor } from '@testing-library/react-native'
 import { Share } from 'react-native'
 import { PracticeDetailView } from '../../src/components/views/PracticeDetailView'
 import { AppProvider } from '../../src/context/AppContext'
-
-const AsyncStorage = require('@react-native-async-storage/async-storage')
+import { db } from '../../src/db/database'
+import type { DbPractice } from '../../src/db/types'
 
 const mockPractice = {
   id: 'practice-1',
@@ -16,6 +16,7 @@ const mockPractice = {
   sport: 'Soccer',
   contactInfo: 'coach@example.com',
   teamId: 'team-1',
+  notes: '',
   checklists: [
     {
       id: 'checklist-1',
@@ -48,15 +49,16 @@ const mockNavigation = {
 const mockRoute = { params: { practiceId: 'practice-1' } }
 
 describe('Export Interface', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks()
-    AsyncStorage.getItem.mockResolvedValue(
-      JSON.stringify({
-        version: '1.0.0',
-        lastSync: null,
-        data: { teams: [mockTeam], practices: [mockPractice] },
-      })
-    )
+    await db.teams.put({ ...mockTeam, _syncStatus: 'synced' })
+    await db.practices.put({ ...(mockPractice as unknown as DbPractice), _syncStatus: 'synced' })
+  })
+
+  afterAll(async () => {
+    await db.teams.clear()
+    await db.practices.clear()
+    await db.syncQueue.clear()
   })
 
   it('renders an overflow menu exposing an export action', async () => {

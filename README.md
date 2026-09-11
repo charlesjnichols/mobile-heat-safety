@@ -27,11 +27,13 @@ infrastructure/cdk/     AWS CDK stack (Cognito, API Gateway, Lambda, DynamoDB)
 
 ## Privacy
 
-All data is stored locally on your device by default. The app has no account system and does not transmit data unless you opt into the optional cloud sync backend. See [PRIVACY_POLICY.md](apps/mobile/PRIVACY_POLICY.md) for details.
+All data is stored locally on your device by default (IndexedDB via Dexie). The app has no required account system and does not transmit data unless you opt into the optional cloud sync backend. See [PRIVACY_POLICY.md](apps/mobile/PRIVACY_POLICY.md) for details.
 
 ## Tech Stack
 
-- **Client:** React Native / Expo, TypeScript, AsyncStorage for local persistence, Zod for validation
+- **Client:** React Native / Expo, TypeScript, Dexie.js (IndexedDB) for local persistence, Zod for validation
+- **Offline sync:** background sync queue that pushes local changes to the backend when connectivity returns
+- **Auth:** Cognito (amazon-cognito-identity-js) with cached JWTs for offline session restoration
 - **Server:** AWS serverless — Cognito, API Gateway, Lambda, DynamoDB (provisioned via AWS CDK)
 - **Shared:** `@coaching-code/domain` (zod schemas + types)
 
@@ -79,6 +81,23 @@ npm run deploy --workspace @coaching-code/infrastructure
 ```
 
 The API exposes a `GET/PUT /sync` endpoint (Cognito-authorizer protected) that the client uses for remote synchronization and multi-tenant data management.
+
+## Offline Data Layer, Sync & Auth
+
+The app is offline-first: all field data (teams, practices, checklists) is persisted locally in IndexedDB via Dexie (`apps/mobile/src/db/`), which is the authoritative source of truth. A background sync engine (`apps/mobile/src/sync/`) queues local mutations and pushes them to the `/sync` backend automatically when connectivity returns, exactly-once and in creation order.
+
+Authentication (`apps/mobile/src/auth/`) uses Cognito with secure session caching: JWTs are stored in `localStorage`, so a previously signed-in coach opens the app offline without a sign-in prompt. If the cached session is expired, the app refreshes it only when online; offline, the app remains fully usable with local data.
+
+Configure the client with build-time env vars:
+
+```
+EXPO_PUBLIC_COGNITO_USER_POOL_ID
+EXPO_PUBLIC_COGNITO_USER_POOL_CLIENT_ID
+EXPO_PUBLIC_COGNITO_REGION
+EXPO_PUBLIC_API_URL
+```
+
+When Cognito is not configured, the app runs fully offline without auth or sync.
 
 ## Development
 

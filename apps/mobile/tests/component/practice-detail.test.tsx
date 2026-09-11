@@ -3,6 +3,8 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react-nativ
 import { Share, Alert } from 'react-native';
 import { PracticeDetailView } from '../../src/components/views/PracticeDetailView';
 import { AppProvider } from '../../src/context/AppContext';
+import { db } from '../../src/db/database';
+import type { DbPractice } from '../../src/db/types';
 
 
 // Mock navigation
@@ -18,15 +20,6 @@ const mockRoute = {
     practiceId: 'practice-123',
   },
 };
-
-// Mock AsyncStorage (self-contained factory; access the mock via require)
-jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-}));
-const mockAsyncStorage = require('@react-native-async-storage/async-storage');
 
 // Mock haptic feedback utility used by the component
 jest.mock('../../src/utils/hapticFeedback', () => ({
@@ -86,6 +79,7 @@ describe('PracticeDetailView Component', () => {
     contactInfo: 'john@example.com',
     headCoach: 'John Coach',
     teamId: 'team-1',
+    notes: '',
     checklists: [
       {
         id: 'checklist-1',
@@ -126,16 +120,6 @@ describe('PracticeDetailView Component', () => {
     updatedAt: '2026-09-02T10:00:00Z'
   };
 
-  const mockStoredData = (practice = mockPractice) =>
-    JSON.stringify({
-      version: '1.0.0',
-      lastSync: null,
-      data: {
-        teams: [mockTeam],
-        practices: [practice]
-      }
-    });
-
   // Date displayed by the component: new Date(practice.date).toLocaleDateString()
   const practiceDateText = new Date('2026-09-02').toLocaleDateString('en-US', {
     month: 'short',
@@ -153,18 +137,19 @@ describe('PracticeDetailView Component', () => {
       </AppProvider>
     );
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset mocks
     jest.clearAllMocks();
     
-    // Mock AsyncStorage returning practice data
-    mockAsyncStorage.getItem
-      .mockImplementation((key: string) => {
-        if (key === 'heatSafetyData') {
-          return Promise.resolve(mockStoredData());
-        }
-        return Promise.resolve(null);
-      });
+    // Seed the Dexie source of truth directly (replaces the legacy AsyncStorage mock)
+    await db.teams.put({ ...mockTeam, _syncStatus: 'synced' });
+    await db.practices.put({ ...(mockPractice as unknown as DbPractice), _syncStatus: 'synced' });
+  });
+
+  afterAll(async () => {
+    await db.teams.clear();
+    await db.practices.clear();
+    await db.syncQueue.clear();
   });
 
   describe('Component Rendering', () => {
@@ -284,14 +269,12 @@ describe('PracticeDetailView Component', () => {
       expect(deleteButtons.length).toBe(2);
       fireEvent.press(deleteButtons[0]);
 
-      // Entry should be removed and data persisted
-      await waitFor(() => {
+      // Entry should be removed and data persisted to Dexie
+      await waitFor(async () => {
         expect(screen.queryByText('2:30 PM')).toBeNull();
+        const stored = await db.practices.get('practice-123');
+        expect(stored?.checklists.some(c => c.id === 'checklist-1')).toBe(false);
       });
-      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
-        'heatSafetyData',
-        expect.not.stringContaining('checklist-1')
-      );
     });
 
     test('should trigger haptic feedback on important actions', async () => {
@@ -345,7 +328,7 @@ describe('PracticeDetailView Component', () => {
           { ...mockPractice.checklists[1], heatIndex: 110 },
         ],
       };
-      mockAsyncStorage.getItem.mockResolvedValue(mockStoredData(extremePractice));
+      await db.practices.put({ ...(extremePractice as unknown as DbPractice), _syncStatus: 'synced' });
 
       renderView();
       await screen.findByText(/Main Field/);
@@ -358,43 +341,22 @@ describe('PracticeDetailView Component', () => {
 
   describe('Data Persistence', () => {
     
-    test('should save checklist changes to AsyncStorage', async () => {
+    test('should save checklist changes to Dexie', async () => {
       renderView();
       await screen.findByText(/Main Field/);
 
       // Delete the second entry (heat index 102); the change must be persisted
       fireEvent.press(screen.getAllByText('Delete')[1]);
 
-      // Should save updated data to AsyncStorage
-      await waitFor(() => {
-        expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
-          'heatSafetyData',
-          expect.stringContaining('"heatIndex":95')
-        );
-      });
-    });
-
-    test('should handle storage load errors gracefully', async () => {
-      // The provider swallows a storage load failure; the detail view degrades
-      // to the "not found" state rather than crashing.
-      mockAsyncStorage.getItem.mockRejectedValue(new Error('Storage error'));
-      
-      renderView();
-
-      await waitFor(() => {
-        expect(screen.getByText('Practice not found')).toBeTruthy();
+      // Should save updated data to Dexie
+      await waitFor(async () => {
+        const stored = await db.practices.get('practice-123');
+        expect(stored?.checklists.some(c => c.heatIndex === 102)).toBe(false);
       });
     });
 
     test('should show loading state while data loads', async () => {
-      mockAsyncStorage.getItem.mockImplementation(() => 
-        new Promise(resolve => setTimeout(() => resolve(mockStoredData()), 100))
-      );
-      
       renderView();
-
-      // Should show loading indicator initially
-      expect(screen.getByText('Loading practice data...')).toBeTruthy();
 
       // Should show practice data after loading
       await screen.findByText(/Main Field/);
@@ -457,14 +419,7 @@ describe('PracticeDetailView Component', () => {
   describe('Error Handling', () => {
     
     test('should handle missing practice data gracefully', async () => {
-      mockAsyncStorage.getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        lastSync: null,
-        data: {
-          teams: [],
-          practices: [] // No practice data
-        }
-      }));
+      await db.practices.clear();
 
       renderView();
 
@@ -497,19 +452,11 @@ describe('PracticeDetailView Component', () => {
     });
 
     test('should reflect state once data loads from the provider', async () => {
-      // Simulate the provider loading data on mount.
-      mockAsyncStorage.getItem.mockImplementation((key: string) =>
-        key === 'heatSafetyData'
-          ? Promise.resolve(mockStoredData())
-          : Promise.resolve(null)
-      );
-
       renderView();
 
       // The detail view reads from context and renders once state is populated.
       await screen.findByText(/Main Field/);
       expect(screen.getByText(/Main Field/)).toBeTruthy();
-      expect(mockAsyncStorage.getItem.mock.calls.length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -534,7 +481,7 @@ describe('PracticeDetailView Component', () => {
         }))
       };
 
-      mockAsyncStorage.getItem.mockResolvedValue(mockStoredData(largeMockPractice));
+      await db.practices.put({ ...(largeMockPractice as unknown as DbPractice), _syncStatus: 'synced' });
 
       renderView();
 

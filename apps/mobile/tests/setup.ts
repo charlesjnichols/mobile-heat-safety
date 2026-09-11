@@ -1,3 +1,43 @@
+// Provide an in-memory IndexedDB for Dexie-backed tests (Node test env has none).
+import 'fake-indexeddb/auto'
+
+// Provide an in-memory localStorage for auth/session tests (Node test env has none).
+const createStorage = (): Storage => {
+  let store: Record<string, string> = {}
+  return {
+    get length() {
+      return Object.keys(store).length
+    },
+    clear: () => {
+      store = {}
+    },
+    getItem: (key: string) => store[key] ?? null,
+    key: (index: number) => Object.keys(store)[index] ?? null,
+    removeItem: (key: string) => {
+      delete store[key]
+    },
+    setItem: (key: string, value: string) => {
+      store[key] = String(value)
+    },
+  }
+}
+if (typeof globalThis.localStorage === 'undefined') {
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: createStorage(),
+    writable: true,
+  })
+}
+
+// Provide an in-memory sessionStorage for auth/session tests (Node test env has
+// none). Sessions are kept in sessionStorage so credentials do not persist to
+// durable storage between program runs.
+if (typeof globalThis.sessionStorage === 'undefined') {
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    value: createStorage(),
+    writable: true,
+  })
+}
+
 // Mock AsyncStorage
 const mockAsyncStorage = {
   getItem: jest.fn(),
@@ -95,6 +135,22 @@ beforeAll(() => {
 
 afterAll(() => {
   jest.restoreAllMocks();
+});
+
+// Clear the shared Dexie database before each test so the AsyncStorage-seeded
+// migration (and AppContext load) starts from an empty IndexedDB each time.
+beforeEach(async () => {
+  const { db } = require('../src/db/database') as {
+    db: {
+      delete: () => Promise<void>;
+      teams: { clear: () => Promise<void> };
+      practices: { clear: () => Promise<void> };
+      syncQueue: { clear: () => Promise<void> };
+    };
+  };
+  await db.teams.clear();
+  await db.practices.clear();
+  await db.syncQueue.clear();
 });
 
 // Custom matchers for mobile testing

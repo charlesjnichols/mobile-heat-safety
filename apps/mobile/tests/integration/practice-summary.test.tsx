@@ -2,6 +2,39 @@ import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
 import { PracticeDetailView } from '../../src/components/views/PracticeDetailView';
 import { AppProvider } from '../../src/context/AppContext';
+import { db } from '../../src/db/database';
+import type { DbTeam, DbPractice } from '../../src/db/types';
+
+// Seed the Dexie source of truth directly (replaces the legacy AsyncStorage mock).
+// The mock practices omit optional/defaulted domain fields, so normalize them here.
+const seed = async (team: Record<string, unknown>, practice: Record<string, unknown>) => {
+  const now = new Date().toISOString();
+  const dbTeam: DbTeam = {
+    id: String(team.id),
+    name: String(team.name ?? 'Team'),
+    color: String(team.color ?? '#3b82f6'),
+    createdAt: String(team.createdAt ?? now),
+    updatedAt: String(team.updatedAt ?? now),
+    _syncStatus: 'synced',
+  };
+  const dbPractice: DbPractice = {
+    id: String(practice.id),
+    name: String(practice.name ?? 'Practice'),
+    date: String(practice.date ?? ''),
+    location: String(practice.location ?? ''),
+    coach: String(practice.coach ?? ''),
+    sport: String(practice.sport ?? ''),
+    contactInfo: String(practice.contactInfo ?? ''),
+    teamId: String(practice.teamId ?? ''),
+    notes: String(practice.notes ?? ''),
+    checklists: (practice.checklists as unknown) as DbPractice['checklists'],
+    createdAt: String(practice.createdAt ?? now),
+    updatedAt: String(practice.updatedAt ?? now),
+    _syncStatus: 'synced',
+  };
+  await db.teams.put(dbTeam);
+  await db.practices.put(dbPractice);
+};
 
 describe('Heat Index Practice Summary Integration', () => {
   const mockNavigation = {
@@ -61,14 +94,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getAllByText } = render(
         <AppProvider>
@@ -121,14 +148,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getByLabelText } = render(
         <AppProvider>
@@ -180,14 +201,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getByText, getAllByText } = render(
         <AppProvider>
@@ -223,14 +238,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getByText } = render(
         <AppProvider>
@@ -276,14 +285,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getByLabelText } = render(
         <AppProvider>
@@ -326,14 +329,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getByLabelText } = render(
         <AppProvider>
@@ -387,14 +384,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const startTime = Date.now();
 
@@ -437,14 +428,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const startTime = Date.now();
 
@@ -491,14 +476,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getByLabelText } = render(
         <AppProvider>
@@ -541,14 +520,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getByLabelText } = render(
         <AppProvider>
@@ -593,14 +566,8 @@ describe('Heat Index Practice Summary Integration', () => {
         color: '#3b82f6'
       };
 
-      // Mock AsyncStorage to return the practice data
-      require('@react-native-async-storage/async-storage').getItem.mockResolvedValue(JSON.stringify({
-        version: '1.0.0',
-        data: {
-          teams: [mockTeam],
-          practices: [mockPractice]
-        }
-      }));
+      // Seed the Dexie source of truth directly
+      await seed(mockTeam, mockPractice);
 
       const { getByLabelText, rerender } = render(
         <AppProvider>

@@ -33,6 +33,10 @@ jobs:
 
       - name: Build web
         run: npm run build:web --workspace @coaching-code/mobile
+        env:
+          EXPO_PUBLIC_COGNITO_USER_POOL_ID: ${{ vars.EXPO_PUBLIC_COGNITO_USER_POOL_ID }}
+          EXPO_PUBLIC_COGNITO_USER_POOL_CLIENT_ID: ${{ vars.EXPO_PUBLIC_COGNITO_USER_POOL_CLIENT_ID }}
+          EXPO_PUBLIC_COGNITO_REGION: ${{ vars.EXPO_PUBLIC_COGNITO_REGION }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

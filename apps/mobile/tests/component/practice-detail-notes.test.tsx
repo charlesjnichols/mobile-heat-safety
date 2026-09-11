@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { PracticeDetailView } from '../../src/components/views/PracticeDetailView';
 import { AppProvider } from '../../src/context/AppContext';
+import { db } from '../../src/db/database';
 
 // Mock navigation
 const mockNavigation = {
@@ -22,7 +23,6 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   removeItem: jest.fn(),
   clear: jest.fn(),
 }));
-const mockAsyncStorage = require('@react-native-async-storage/async-storage');
 
 jest.mock('../../src/utils/hapticFeedback', () => ({
   HapticFeedback: {
@@ -76,16 +76,6 @@ describe('PracticeDetailView Notes & Heat Stress Action Levels', () => {
     updatedAt: '2026-09-02T10:00:00Z',
   };
 
-  const mockStoredData = (practice = mockPractice) =>
-    JSON.stringify({
-      version: '1.0.0',
-      lastSync: null,
-      data: {
-        teams: [mockTeam],
-        practices: [practice],
-      },
-    });
-
   const renderView = () =>
     render(
       <AppProvider>
@@ -93,14 +83,16 @@ describe('PracticeDetailView Notes & Heat Stress Action Levels', () => {
       </AppProvider>
     );
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
-    mockAsyncStorage.getItem.mockImplementation((key: string) => {
-      if (key === 'heatSafetyData') {
-        return Promise.resolve(mockStoredData());
-      }
-      return Promise.resolve(null);
-    });
+    await db.teams.put({ ...mockTeam, _syncStatus: 'synced' });
+    await db.practices.put({ ...mockPractice, _syncStatus: 'synced' });
+  });
+
+  afterAll(async () => {
+    await db.teams.clear();
+    await db.practices.clear();
+    await db.syncQueue.clear();
   });
 
   test('renders an Additional Notes & Observations field', async () => {
@@ -133,18 +125,14 @@ describe('PracticeDetailView Notes & Heat Stress Action Levels', () => {
     const saveButton = screen.getByTestId('save-notes-button');
     fireEvent.press(saveButton);
 
-    await waitFor(() => {
-      expect(mockAsyncStorage.setItem).toHaveBeenCalledWith(
-        'heatSafetyData',
-        expect.stringContaining('Player showed heat symptoms')
-      );
+    await waitFor(async () => {
+      const stored = await db.practices.get('practice-123');
+      expect(stored?.notes).toContain('Player showed heat symptoms');
     });
   });
 
   test('displays persisted notes when the practice already has notes', async () => {
-    mockAsyncStorage.getItem.mockResolvedValue(
-      mockStoredData({ ...mockPractice, notes: 'Existing observation' })
-    );
+    await db.practices.put({ ...mockPractice, notes: 'Existing observation', _syncStatus: 'synced' });
 
     renderView();
     await screen.findByText(/Main Field/);

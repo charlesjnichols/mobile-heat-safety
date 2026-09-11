@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HeatSafetyData, Practice } from '../types';
+import { db } from '../db/database';
 
 // Storage key constants
 export const STORAGE_KEY = 'heatSafetyData';
@@ -50,22 +51,22 @@ const isValidDataShape = (data: HeatSafetyData): boolean => {
 
 const isObject = (value: unknown): boolean => typeof value === 'object' && value !== null && !Array.isArray(value)
 
-// Read-only utility functions for data access
+// Read-only utility functions for data access. These read from the Dexie source
+// of truth (IndexedDB) rather than the legacy AsyncStorage blob.
 export const getTeams = async () => {
-  const data = await loadData();
-  return data.data.teams;
+  const teams = await db.teams.toArray();
+  return teams.map(({ _syncStatus, ...team }) => team);
 };
 
 export const getPractices = async (teamId?: string) => {
-  const data = await loadData();
-  let practices = data.data.practices;
+  const practices = teamId
+    ? await db.practices.where('teamId').equals(teamId).toArray()
+    : await db.practices.toArray();
 
-  if (teamId) {
-    practices = practices.filter((practice: Practice) => practice.teamId === teamId);
-  }
+  const clean = practices.map(({ _syncStatus, ...practice }) => practice);
 
   // Sort by date (most recent first); guard invalid dates so NaN compares deterministically
-  return [...practices].sort((a: Practice, b: Practice) => {
+  return [...clean].sort((a: Practice, b: Practice) => {
     const aTime = new Date(a.date).getTime()
     const bTime = new Date(b.date).getTime()
     if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0

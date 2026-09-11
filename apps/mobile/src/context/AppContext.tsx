@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { STORAGE_KEY, getDefaultData } from '../utils/storage'
+import { getDefaultData } from '../utils/storage'
 import { Team, Practice, Checklist, HeatSafetyData } from '../types'
+import { db } from '../db/database'
+import { migrateFromAsyncStorage } from '../db/migration'
+import { enqueue } from '../sync/queue'
 
 const SAVE_ERROR_MESSAGE = 'Failed to save data'
 
@@ -353,20 +355,29 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState)
 
-  // Load data from storage on mount
+  // Load data from Dexie on mount
   useEffect(() => {
     const loadData = async () => {
       try {
         dispatch({ type: 'SET_LOADING', payload: true })
 
-        const storedData = await AsyncStorage.getItem(STORAGE_KEY)
-        if (storedData) {
-          const parsedData = JSON.parse(storedData)
-          dispatch({ type: 'SET_DATA', payload: parsedData })
-        } else {
-          // Save initial data to storage
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(initialState.data))
-        }
+        // One-time migration from legacy AsyncStorage into Dexie.
+        await migrateFromAsyncStorage()
+
+        const teams = await db.teams.toArray()
+        const practices = await db.practices.toArray()
+
+        dispatch({
+          type: 'SET_DATA',
+          payload: {
+            version: '1.0.0',
+            lastSync: null,
+            data: {
+              teams: teams.map(stripSyncStatus),
+              practices: practices.map(stripSyncStatus),
+            },
+          },
+        })
 
         // Mark hydrated only after the initial load resolves; this gates the save
         // effect below so the seed/default state is never written over persisted data.
@@ -381,12 +392,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     loadData()
   }, [])
 
-  // Auto-save data when it changes
+  // Persist mutations to Dexie (source of truth) and enqueue sync events.
   useEffect(() => {
-    const saveData = async () => {
+    const persist = async () => {
       try {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state.data))
-        // Clear a previous transient save error so persistence can continue
+        await persistStateToDexie(state.data)
         if (state.error === SAVE_ERROR_MESSAGE) {
           dispatch({ type: 'SET_ERROR', payload: null })
         }
@@ -399,7 +409,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     // Only persist once the initial load has resolved. A previous LOAD error must
     // not be overwritten by the seeded fallback state.
     if (state.hydrated && state.error !== 'Failed to load data') {
-      saveData()
+      persist()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.data, state.hydrated])
@@ -414,4 +424,71 @@ export const useAppContext = () => {
     throw new Error('useAppContext must be used within an AppProvider')
   }
   return context
+}
+
+// Strip the internal _syncStatus field before it reaches the in-memory state.
+const stripSyncStatus = <T extends { _syncStatus?: unknown }>(record: T) => {
+  const { _syncStatus, ...rest } = record
+  void _syncStatus
+  return rest
+}
+
+// Persist the full in-memory dataset to Dexie, marking changed records pending
+// and enqueueing them for background sync. Idempotent whole-dataset sync keeps
+// the implementation simple and correct for the single-device model.
+const persistStateToDexie = async (data: HeatSafetyData): Promise<void> => {
+  await db.transaction('rw', db.teams, db.practices, db.syncQueue, async () => {
+    // Snapshot reads live inside the transaction so they observe a single
+    // consistent view (not stale rows committed by a concurrent sync write).
+    const existingTeams = new Map((await db.teams.toArray()).map(t => [t.id, t]))
+    const existingPractices = new Map(
+      (await db.practices.toArray()).map(p => [p.id, p])
+    )
+
+    const teamIds = new Set<string>()
+    for (const team of data.data.teams) {
+      const prev = existingTeams.get(team.id)
+      const changed = !prev || prev.updatedAt !== team.updatedAt
+      const status = changed ? 'pending' : (prev?._syncStatus ?? 'pending')
+      await db.teams.put({ ...team, _syncStatus: status })
+      // Enqueue when the record changed OR it is still awaiting first upload
+      // (e.g. rows migrated from AsyncStorage are 'pending' but were never
+      // enqueued), so pending data is always uploaded rather than stuck forever.
+      if (changed || status === 'pending') {
+        teamIds.add(team.id)
+      }
+    }
+    // Remove teams no longer present.
+    const currentTeamIds = new Set(data.data.teams.map(t => t.id))
+    for (const existing of existingTeams.values()) {
+      if (!currentTeamIds.has(existing.id)) {
+        await db.teams.delete(existing.id)
+      }
+    }
+
+    const practiceIds = new Set<string>()
+    for (const practice of data.data.practices) {
+      const prev = existingPractices.get(practice.id)
+      const changed = !prev || prev.updatedAt !== practice.updatedAt
+      const status = changed ? 'pending' : (prev?._syncStatus ?? 'pending')
+      await db.practices.put({ ...practice, _syncStatus: status })
+      if (changed || status === 'pending') {
+        practiceIds.add(practice.id)
+      }
+    }
+    const currentPracticeIds = new Set(data.data.practices.map(p => p.id))
+    for (const existing of existingPractices.values()) {
+      if (!currentPracticeIds.has(existing.id)) {
+        await db.practices.delete(existing.id)
+      }
+    }
+
+    // Enqueue changed records for background sync.
+    for (const id of teamIds) {
+      await enqueue({ entityType: 'team', entityId: id, operation: 'update' })
+    }
+    for (const id of practiceIds) {
+      await enqueue({ entityType: 'practice', entityId: id, operation: 'update' })
+    }
+  })
 }
