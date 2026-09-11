@@ -106,4 +106,33 @@ describe('sync engine', () => {
     expect(result.error).toBe('Network request failed')
     expect(await db.syncQueue.count()).toBe(1)
   })
+
+  it('offline-deferred sync leaves local records readable and writable', async () => {
+    setAuth()
+    const now = '2026-09-11T10:00:00Z'
+    await db.teams.put({
+      id: 'team-2',
+      name: 'Team Two',
+      color: '#4ECDC4',
+      createdAt: now,
+      updatedAt: now,
+      _syncStatus: 'pending',
+    })
+    await enqueue({ entityType: 'team', entityId: 'team-2', operation: 'create' })
+    mockFetch.mockRejectedValue(new Error('Network request failed'))
+
+    await drain()
+
+    // Field actions remain unblocked: the local record is still present and
+    // mutable even though sync failed (offline-first guarantee).
+    const team = await db.teams.get('team-2')
+    expect(team).not.toBeNull()
+    await db.teams.put({
+      ...team,
+      name: 'Team Two (edited offline)',
+      updatedAt: '2026-09-11T11:00:00Z',
+    } as never)
+    const edited = await db.teams.get('team-2')
+    expect(edited?.name).toBe('Team Two (edited offline)')
+  })
 })

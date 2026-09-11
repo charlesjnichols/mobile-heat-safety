@@ -9,11 +9,17 @@ import { registerServiceWorker } from './utils/serviceWorker'
 import { useNetworkStatus } from './hooks/useNetworkStatus'
 import { ErrorBoundary } from './utils/errorHandling'
 import { PALETTE } from './utils/outdoorColors'
-import { readLastAuthUser, readSession, isSessionExpired, clearSession } from './auth/session'
-import { getUserPool, refreshSession } from './auth/cognito'
-import { writeSession } from './auth/session'
+import {
+  readLastAuthUser,
+  readSession,
+  isSessionExpired,
+  clearSession,
+  storeHostedTokens,
+  refreshStoredSession,
+} from './auth/session'
+import { exchangeCodeForTokens } from './auth/hostedAuth'
+import { isHostedUiConfigured } from './auth/config'
 import { drain } from './sync/engine'
-import { CognitoUser } from 'amazon-cognito-identity-js'
 
 function OfflineBanner() {
   const isOnline = useNetworkStatus()
@@ -44,18 +50,6 @@ function injectWebScrollReset() {
   document.head.appendChild(style)
 }
 
-// Cognito throws with a `name` like "NotAuthorizedException" when the refresh
-// token is invalid or revoked — the only case where a stuck session is a real
-// sign-out. Any other error (network, etc.) is transient and must not log the
-// user out.
-const isInvalidTokenError = (error: unknown): boolean => {
-  if (typeof error !== 'object' || error === null) {
-    return false
-  }
-  const name = (error as { name?: unknown }).name
-  return name === 'NotAuthorizedException'
-}
-
 export default function App() {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null)
   const isOnline = useNetworkStatus()
@@ -66,6 +60,35 @@ export default function App() {
     // elsewhere).
     injectWebScrollReset()
     registerServiceWorker()
+  }, [])
+
+  // Complete the hosted-UI redirect when present: exchange ?code&state for
+  // tokens, cache the session, and clean the address bar so the callback is not
+  // re-processed. On failure the user stays signed out and can retry.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const url = new URL(window.location.href)
+    const code = url.searchParams.get('code')
+    const state = url.searchParams.get('state')
+    if (!code || !state) return
+    ;(async () => {
+      try {
+        const tokens = await exchangeCodeForTokens(code, state)
+        storeHostedTokens(tokens)
+      } catch {
+        // State mismatch or failed exchange: leave the user signed out; the
+        // AuthView offers retry. Clear any partially-cached session.
+        const username = readLastAuthUser()
+        if (username) {
+          clearSession(username)
+        }
+      }
+      // Strip the OAuth params so a refresh does not replay the exchange.
+      url.searchParams.delete('code')
+      url.searchParams.delete('state')
+      window.history.replaceState(null, '', url.toString())
+      setAuthenticated(Boolean(readLastAuthUser()))
+    })()
   }, [])
 
   // Restore the cached session on init. Offline with an unexpired cache keeps
@@ -87,27 +110,15 @@ export default function App() {
         setAuthenticated(true)
         return
       }
-      // Expired: attempt refresh only when online; otherwise stay usable offline.
-      if (isOnline) {
-        const pool = getUserPool()
-        if (pool) {
-          try {
-            const user = new CognitoUser({ Username: username, Pool: pool })
-            const refreshed = await refreshSession(user, session.refreshToken)
-            writeSession(username, refreshed)
-            setAuthenticated(true)
-            return
-          } catch (error) {
-            // Only a genuine invalid-token/expired-refresh error is a real
-            // sign-out. A transient network failure must not wipe the cached
-            // session (and its refresh token), which would force a fresh login.
-            if (isInvalidTokenError(error)) {
-              clearSession(username)
-              setAuthenticated(false)
-              return
-            }
-            console.error('Session refresh failed:', error)
-          }
+      // Expired: refresh via the hosted-UI token endpoint only when online;
+      // otherwise stay usable offline. A failed refresh (network error or
+      // revoked token) must not wipe the cached session — offline use continues
+      // and sync retries when connectivity returns.
+      if (isOnline && isHostedUiConfigured()) {
+        const refreshed = await refreshStoredSession()
+        if (refreshed) {
+          setAuthenticated(true)
+          return
         }
       }
       setAuthenticated(true)
@@ -142,7 +153,15 @@ export default function App() {
           {authenticated ? (
             <View style={styles.root}>
               <OfflineBanner />
-              <AppNavigator />
+              <AppNavigator
+                onSignOut={() => {
+                  const username = readLastAuthUser()
+                  if (username) {
+                    clearSession(username)
+                  }
+                  setAuthenticated(false)
+                }}
+              />
             </View>
           ) : (
             <AuthView onAuthenticated={() => setAuthenticated(true)} />

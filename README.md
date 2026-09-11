@@ -113,10 +113,24 @@ Serve `dist/` over HTTPS (service workers require a secure context) with these r
 - `index.html` (and `sw.js`): `Cache-Control: no-cache` so clients fetch the newest version and pick up the updated service worker.
 - Hashed static assets under `/_expo/static/`, `/assets/`, icons, and `manifest.json`: `Cache-Control: public, max-age=31536000, immutable`.
 
-Recommended `Content-Security-Policy` to preserve the local-only privacy model (no third-party origins, scripts, or trackers):
+Recommended `Content-Security-Policy` to preserve the local-only privacy model (no third-party origins, scripts, or trackers beyond the identity provider used for sign-in):
 
 ```
-Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'
+Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://<cognito-domain>; manifest-src 'self'; worker-src 'self'
+```
+
+Replace `https://<cognito-domain>` with the hosted-UI domain (e.g. `https://mobile-heat-safety.auth.us-east-1.amazoncognito.com`) so the OAuth token exchange can reach it. Sign-in and sign-out are top-level redirects to that domain, which are not restricted by `connect-src`.
+
+Identity configuration is injected at build time via GitHub Actions repository variables (see the deploy workflow):
+
+```
+EXPO_PUBLIC_COGNITO_USER_POOL_ID
+EXPO_PUBLIC_COGNITO_USER_POOL_CLIENT_ID
+EXPO_PUBLIC_COGNITO_REGION
+EXPO_PUBLIC_COGNITO_DOMAIN
+EXPO_PUBLIC_REDIRECT_URI
+EXPO_PUBLIC_LOGOUT_URI
+EXPO_PUBLIC_API_URL
 ```
 
 ## License

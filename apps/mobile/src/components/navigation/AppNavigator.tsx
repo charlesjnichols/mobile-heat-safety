@@ -18,7 +18,11 @@ import ChecklistForm from '../forms/ChecklistForm';
 // Tab Navigator
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const TabNavigator = () => {
+interface TabNavigatorProps {
+  onSignOut: () => void;
+}
+
+const TabNavigator = ({ onSignOut }: TabNavigatorProps) => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -74,19 +78,24 @@ const TabNavigator = () => {
       />
       <Tab.Screen 
         name="Settings" 
-        component={SettingsView}
         options={{
           tabBarLabel: 'Settings',
         }}
-      />
+      >
+        {() => <SettingsView onSignOut={onSignOut} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 };
 
+interface AppNavigatorProps {
+  onSignOut: () => void;
+}
+
 // Stack Navigator
 const Stack = createStackNavigator<RootStackParamList>();
 
-const AppNavigator = () => {
+const AppNavigator = ({ onSignOut }: AppNavigatorProps) => {
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -106,9 +115,10 @@ const AppNavigator = () => {
       >
         <Stack.Screen 
           name="Home" 
-          component={TabNavigator}
           options={{ headerShown: false }}
-        />
+        >
+          {() => <TabNavigator onSignOut={onSignOut} />}
+        </Stack.Screen>
         <Stack.Screen 
           name="PracticeDetail" 
           component={PracticeDetailView}

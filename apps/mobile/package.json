@@ -45,7 +45,6 @@
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
-    "amazon-cognito-identity-js": "^6.3.20",
     "babel-preset-expo": "~57.0.0",
     "dexie": "^4.4.5",
     "expo": "^57.0.20",

@@ -1,12 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { PALETTE } from '../../utils/outdoorColors';
+import { logout, isHostedUiConfigured } from '../../auth/hostedAuth';
 
-const SettingsView = () => {
+interface SettingsViewProps {
+  onSignOut: () => void;
+}
+
+const SettingsView = ({ onSignOut }: SettingsViewProps) => {
   const version = Constants.expoConfig?.version ?? '1.0.0';
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+    } finally {
+      onSignOut();
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
@@ -48,7 +61,7 @@ const SettingsView = () => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data & Privacy</Text>
+          <Text style={styles.sectionTitle}>Data &amp; Privacy</Text>
           <View style={styles.infoItem}>
             <Ionicons name="shield-checkmark" size={20} color={PALETTE.TEXT_SECONDARY} />
             <Text style={styles.infoText}>Data stored locally on device</Text>
@@ -58,6 +71,22 @@ const SettingsView = () => {
             <Text style={styles.infoText}>No internet connection required</Text>
           </View>
         </View>
+
+        {isHostedUiConfigured() && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account</Text>
+            <TouchableOpacity
+              style={styles.signOutButton}
+              onPress={handleSignOut}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel="Sign Out"
+            >
+              <Ionicons name="log-out-outline" size={20} color={PALETTE.WHITE} />
+              <Text style={styles.signOutText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -123,6 +152,21 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 12,
+  },
+  signOutButton: {
+    alignItems: 'center',
+    backgroundColor: PALETTE.RED_BOOTSTRAP,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    minHeight: 44,
+    paddingHorizontal: 16,
+  },
+  signOutText: {
+    color: PALETTE.WHITE,
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 

@@ -1,77 +1,60 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native'
 import AuthView from './AuthView'
-import { signIn, signUp, confirmSignUp } from '../../auth/cognito'
-import { writeSession } from '../../auth/session'
+import { login } from '../../auth/hostedAuth'
+import { isCognitoConfigured, isHostedUiConfigured } from '../../auth/config'
 
-jest.mock('../../auth/cognito', () => ({
-  signIn: jest.fn(),
-  signUp: jest.fn(),
-  confirmSignUp: jest.fn(),
-  getUserPool: jest.fn(),
-  refreshSession: jest.fn(),
+jest.mock('../../auth/hostedAuth', () => ({
+  login: jest.fn(),
 }))
 
 jest.mock('../../auth/config', () => ({
-  isCognitoConfigured: () => true,
-  cognitoConfig: { userPoolId: 'pool', userPoolClientId: 'client', region: 'us-east-1', apiUrl: '' },
+  isCognitoConfigured: jest.fn(() => true),
+  isHostedUiConfigured: jest.fn(() => true),
+  cognitoConfig: {
+    userPoolId: 'pool',
+    userPoolClientId: 'client',
+    region: 'us-east-1',
+    apiUrl: '',
+    domain: 'https://test.auth.us-east-1.amazoncognito.com',
+    redirectUri: 'https://app.example.com/app/',
+    logoutUri: 'https://app.example.com/app/',
+  },
 }))
 
-const mockedSignIn = signIn as jest.Mock
-const mockedSignUp = signUp as jest.Mock
-const mockedConfirm = confirmSignUp as jest.Mock
+const mockedLogin = login as jest.Mock
 
 describe('AuthView', () => {
   beforeEach(() => {
     jest.clearAllMocks()
-    sessionStorage.clear()
   })
 
-  it('renders sign-in form', () => {
+  it('renders a single Sign In button', () => {
     render(<AuthView onAuthenticated={() => {}} />)
-    expect(screen.getByLabelText('Email')).toBeTruthy()
-    expect(screen.getByLabelText('Password')).toBeTruthy()
     expect(screen.getByText('Sign In')).toBeTruthy()
+    expect(screen.queryByLabelText('Email')).toBeNull()
+    expect(screen.queryByLabelText('Password')).toBeNull()
   })
 
-  it('signs in and calls onAuthenticated', async () => {
-    const onAuthenticated = jest.fn()
-    const session = {
-      getIdToken: () => ({ getJwtToken: () => 'id', getExpiration: () => Math.floor(Date.now() / 1000) + 3600 }),
-      getAccessToken: () => ({ getJwtToken: () => 'access' }),
-      getRefreshToken: () => ({ getToken: () => 'refresh' }),
-    } as unknown as Parameters<typeof writeSession>[1]
-    mockedSignIn.mockResolvedValue(session)
-
-    render(<AuthView onAuthenticated={onAuthenticated} />)
-    fireEvent.changeText(screen.getByLabelText('Email'), 'coach@example.com')
-    fireEvent.changeText(screen.getByLabelText('Password'), 'Password123!')
+  it('invokes hosted login on press', async () => {
+    mockedLogin.mockResolvedValue(undefined)
+    render(<AuthView onAuthenticated={() => {}} />)
     fireEvent.press(screen.getByText('Sign In'))
-
-    await waitFor(() => expect(onAuthenticated).toHaveBeenCalled())
-    expect(mockedSignIn).toHaveBeenCalledWith('coach@example.com', 'Password123!')
+    await waitFor(() => expect(mockedLogin).toHaveBeenCalledTimes(1))
   })
 
-  it('switches to sign-up mode', () => {
+  it('shows an error when login fails', async () => {
+    mockedLogin.mockRejectedValue(new Error('network down'))
     render(<AuthView onAuthenticated={() => {}} />)
-    fireEvent.press(screen.getByText('Create an account'))
-    expect(screen.getByText('Sign Up')).toBeTruthy()
+    fireEvent.press(screen.getByText('Sign In'))
+    await waitFor(() => expect(screen.getByText(/network down/i)).toBeTruthy())
   })
 
-  it('handles sign-up then confirmation flow', async () => {
-    mockedSignUp.mockResolvedValue({ userSub: 'sub', userConfirmed: false })
-    mockedConfirm.mockResolvedValue(undefined)
-
+  it('shows offline mode when hosted UI is not configured', () => {
+    ;(isHostedUiConfigured as unknown as jest.Mock).mockReturnValue(false)
+    ;(isCognitoConfigured as unknown as jest.Mock).mockReturnValue(false)
     render(<AuthView onAuthenticated={() => {}} />)
-    fireEvent.press(screen.getByText('Create an account'))
-    fireEvent.changeText(screen.getByLabelText('Email'), 'coach@example.com')
-    fireEvent.changeText(screen.getByLabelText('Password'), 'Password123!')
-    fireEvent.press(screen.getByText('Sign Up'))
-
-    await waitFor(() => expect(screen.getByLabelText('Verification code')).toBeTruthy())
-    fireEvent.changeText(screen.getByLabelText('Verification code'), '123456')
-    fireEvent.press(screen.getByText('Confirm'))
-
-    await waitFor(() => expect(mockedConfirm).toHaveBeenCalledWith('coach@example.com', '123456'))
+    expect(screen.getByText('Offline Mode')).toBeTruthy()
+    expect(screen.getByText('Continue Offline')).toBeTruthy()
   })
 })

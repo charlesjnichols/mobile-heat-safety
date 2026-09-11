@@ -9,17 +9,6 @@
     "assetBundlePatterns": [
       "**/*"
     ],
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.coachingcode.mobileheatsafety"
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      },
-      "package": "mobile.heat.safety.tracker"
-    },
     "web": {
       "name": "Mobile Heat Safety Tracker",
       "shortName": "HeatSafety",
