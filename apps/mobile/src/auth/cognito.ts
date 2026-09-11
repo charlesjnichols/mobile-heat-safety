@@ -37,7 +37,12 @@ export const signUp = (
     return Promise.reject(new Error('Cognito is not configured'))
   }
   return new Promise((resolve, reject) => {
-    pool.signUp(email, password, [], [], (err, result) => {
+    pool.signUp(
+      email,
+      password,
+      [{ Name: 'email', Value: email }],
+      [],
+      (err, result) => {
       if (err || !result) {
         reject(err ?? new Error('Sign up failed'))
         return
