@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-export const SW_PATH = '/sw.js';
+export const SW_PATH = 'sw.js';
 
 export const isServiceWorkerSupported = (): boolean => {
   return (

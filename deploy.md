@@ -46,6 +46,10 @@ npm run build --workspaces --if-present
 # Synthesize the CloudFormation template (optional sanity check)
 npm run synth --workspace @coaching-code/infrastructure
 
+# Load IdP credentials from .env (if used) — plain `source` does NOT export
+# variables to child processes, so npm/cdk would run without them:
+set -a; source .env; set +a
+
 # Deploy the stack
 npm run deploy --workspace @coaching-code/infrastructure
 
@@ -105,6 +109,22 @@ The stack is defined in `infrastructure/cdk/lib/heat-safety-backend-stack.ts` wi
   ```
 
   Outputs: `UserPoolId`, `UserPoolClientId`, `ApiUrl`, `CognitoDomain`, `RedirectUri`, `LogoutUri`. `CognitoDomain`/`RedirectUri`/`LogoutUri` are the `EXPO_PUBLIC_*` values the web app needs (see "Deploying the Web Client" below).
+
+- Confirm which social providers actually registered after deploy:
+
+  ```bash
+  aws cognito-idp list-identity-providers \
+    --user-pool-id <UserPoolId> --region <region> \
+    --query 'Providers[].ProviderName'
+
+  aws cognito-idp describe-user-pool-client \
+    --user-pool-id <UserPoolId> --client-id <UserPoolClientId> --region <region> \
+    --query 'UserPoolClient.SupportedIdentityProviders'
+  ```
+
+  A provider silently absent from `list-identity-providers` means its env vars were missing at deploy time — see "Deploy ordering pitfall" below.
+
+- **Deploy ordering pitfall**: the app client names its social providers (`SupportedIdentityProviders`), and Cognito rejects a client update that references a provider which doesn't exist yet. If CFN provisions the client before the provider, the whole update fails and rolls back ("The provider Google does not exist for User Pool …"). The stack already guards against this with `userPoolClient.node.addDependency(provider)` per social provider; keep that dependency if editing the stack. If you see this error on an older stack revision, redeploy — the retry creates the provider first.
 
 ### AWS API Gateway (REST)
 
@@ -174,7 +194,7 @@ The Expo app (`apps/mobile`) is a web-only PWA deployed to GitHub Pages by `.git
 | `EXPO_PUBLIC_COGNITO_USER_POOL_ID` | CDK output `UserPoolId` (AWS) — `aws cloudformation describe-stacks --stack-name HeatSafetyBackend --query 'Stacks[0].Outputs[?OutputKey==\`UserPoolId\`].OutputValue' --output text` |
 | `EXPO_PUBLIC_COGNITO_USER_POOL_CLIENT_ID` | CDK output `UserPoolClientId` (AWS) — same command with `UserPoolClientId` |
 | `EXPO_PUBLIC_COGNITO_REGION` | The region you deployed CDK to (e.g. `us-east-1`; visible in the AWS console or `aws configure get region`) |
-| `EXPO_PUBLIC_COGNITO_DOMAIN` | CDK output `CognitoDomain` — same `describe-stacks` command with `OutputKey==\`CognitoDomain\``. Without the CLI, find it in the AWS Console: **Cognito → User pools → &lt;your pool&gt; → App integrations → Domain** (format `https://&lt;prefix&gt;.auth.&lt;region&gt;.amazoncognito.com`), or via `aws cognito describe-user-pool --user-pool-id &lt;UserPoolId&gt; --query 'UserPool.Domain'`. If the stack output is missing, the prefix defaulted to `mobile-heat-safety` (unless `COGNITO_DOMAIN_PREFIX` was set at deploy). |
+| `EXPO_PUBLIC_COGNITO_DOMAIN` | CDK output `CognitoDomain` — the **full URL** (`https://<prefix>.auth.<region>.amazoncognito.com`), not just the prefix. A bare prefix like `mobile-heat-safety` makes the app resolve `/<prefix>/oauth2/authorize` against its own origin and the sign-in link 404s on GitHub Pages. Same `describe-stacks` command with `OutputKey==\`CognitoDomain\``. Without the CLI, find it in the AWS Console: **Cognito → User pools → &lt;your pool&gt; → App integrations → Domain**, or via `aws cognito describe-user-pool --user-pool-id &lt;UserPoolId&gt; --query 'UserPool.Domain'`. |
 | `EXPO_PUBLIC_REDIRECT_URI` | CDK output `RedirectUri` (echoes back what was passed as `REDIRECT_URI` at deploy time). Independent of AWS, it is also derivable from GitHub: `https://<owner>.github.io/<repo>/` — visible in the repo's **Settings → Pages** ("Visit site") or from the workflow's deployment step output. It must match the Pages URL exactly. |
 | `EXPO_PUBLIC_LOGOUT_URI` | CDK output `LogoutUri` (normally the same URL as the redirect URI) |
 | `EXPO_PUBLIC_API_URL` | CDK output `ApiUrl` — the API Gateway invoke URL (e.g. `https://xxxx.execute-api.us-east-1.amazonaws.com/prod`) |
@@ -267,3 +287,5 @@ aws secretsmanager describe-secret \
 2. Set the GitHub variables → re-run the `Deploy web to GitHub Pages` workflow.
 3. Open the Pages URL → tap **Sign In** → the Cognito hosted page should open; completing sign-in returns to the app signed in.
 4. If Cognito shows `redirect_mismatch`, the Pages URL and `EXPO_PUBLIC_REDIRECT_URI`/`REDIRECT_URI` differ — make them byte-identical (trailing slash included) and redeploy both sides.
+5. If the hosted page 404s at `https://<pages-origin>/<prefix>/oauth2/authorize`, `EXPO_PUBLIC_COGNITO_DOMAIN` is the bare prefix — set the full `https://<prefix>.auth.<region>.amazoncognito.com` URL and re-run the workflow.
+6. If the hosted page shows only email sign-up (no Google button), the stack was deployed without `GOOGLE_CLIENT_ID` — check `list-identity-providers` (above) and redeploy CDK with the env exported (`set -a; source .env; set +a`).

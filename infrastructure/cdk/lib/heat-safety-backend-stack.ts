@@ -143,6 +143,13 @@ export class HeatSafetyBackendStack extends cdk.Stack {
       },
     })
 
+    // The client must not be created/updated until every identity provider it
+    // references exists — Cognito rejects a client whose provider set names a
+    // provider that isn't registered yet, so parallel provisioning races.
+    for (const provider of socialProviders) {
+      userPoolClient.node.addDependency(provider)
+    }
+
     const table = new dynamodb.Table(this, 'HeatSafetyTable', {
       partitionKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
