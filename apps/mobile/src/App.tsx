@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { StatusBar, StyleSheet, Text, View, Platform } from 'react-native'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import AppNavigator from './components/navigation/AppNavigator'
 import AuthView from './components/views/AuthView'
 import { AppProvider } from './context/AppContext'
@@ -134,8 +135,9 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <GestureHandlerRootView style={styles.root}>
-        <AppProvider>
+      <SafeAreaProvider>
+        <GestureHandlerRootView style={styles.root}>
+          <AppProvider>
           <StatusBar barStyle="dark-content" backgroundColor={PALETTE.WHITE} translucent={false} />
           {authenticated ? (
             <View style={styles.root}>
@@ -145,8 +147,9 @@ export default function App() {
           ) : (
             <AuthView onAuthenticated={() => setAuthenticated(true)} />
           )}
-        </AppProvider>
-      </GestureHandlerRootView>
+          </AppProvider>
+        </GestureHandlerRootView>
+      </SafeAreaProvider>
     </ErrorBoundary>
   )
 }
