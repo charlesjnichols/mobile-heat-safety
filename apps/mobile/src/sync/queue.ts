@@ -17,7 +17,7 @@ export interface EnqueueParams {
 export const MAX_ATTEMPTS = 5
 
 // Minimum delay before an entry that failed is eligible for another retry.
-const BACKOFF_MS = 60_000
+export const BACKOFF_MS = 60_000
 
 // Enqueue a mutation for later upload. If an entry for the same entity already
 // exists, coalesce by updating its operation (last-write-wins) rather than
@@ -107,4 +107,10 @@ export const markFailed = async (
 // Count of entries currently awaiting upload.
 export const pendingCount = async (): Promise<number> => {
   return db.syncQueue.count()
+}
+
+// Cheap tick-gate for the sync trigger controller: true when any queue work
+// exists, without fetching full entries.
+export const hasPendingWork = async (): Promise<boolean> => {
+  return (await db.syncQueue.count()) > 0
 }

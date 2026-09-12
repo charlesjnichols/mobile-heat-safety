@@ -32,7 +32,7 @@ All data is stored locally on your device by default (IndexedDB via Dexie). The 
 ## Tech Stack
 
 - **Client:** React Native / Expo, TypeScript, Dexie.js (IndexedDB) for local persistence, Zod for validation
-- **Offline sync:** background sync queue that pushes local changes to the backend when connectivity returns
+- **Offline sync:** background sync queue that pushes local changes to the backend automatically while online or when connectivity is restored — no connectivity event is required; a drain is skipped when the queue is empty
 - **Auth:** Cognito (amazon-cognito-identity-js) with cached JWTs for offline session restoration
 - **Server:** AWS serverless — Cognito, API Gateway, Lambda, DynamoDB (provisioned via AWS CDK)
 - **Shared:** `@coaching-code/domain` (zod schemas + types)

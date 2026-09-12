@@ -7,6 +7,7 @@ import AuthView from './components/views/AuthView'
 import { AppProvider } from './context/AppContext'
 import { registerServiceWorker } from './utils/serviceWorker'
 import { useNetworkStatus } from './hooks/useNetworkStatus'
+import { useSyncTriggers } from './hooks/useSyncTriggers'
 import { ErrorBoundary } from './utils/errorHandling'
 import { PALETTE } from './utils/outdoorColors'
 import {
@@ -19,7 +20,6 @@ import {
 } from './auth/session'
 import { exchangeCodeForTokens } from './auth/hostedAuth'
 import { isHostedUiConfigured } from './auth/config'
-import { drain } from './sync/engine'
 
 function OfflineBanner() {
   const isOnline = useNetworkStatus()
@@ -61,6 +61,10 @@ export default function App() {
     injectWebScrollReset()
     registerServiceWorker()
   }, [])
+
+  // Feed connectivity/lifecycle signals to the sync trigger controller so the
+  // queue drains while online and on restoration, not only on network flaps.
+  useSyncTriggers()
 
   // Complete the hosted-UI redirect when present: exchange ?code&state for
   // tokens, cache the session, and clean the address bar so the callback is not
@@ -126,15 +130,10 @@ export default function App() {
     restore()
   }, [isOnline])
 
-  // Drain the sync queue automatically when connectivity returns. The engine
-  // guards against overlapping runs; failures are logged, not silently dropped.
-  useEffect(() => {
-    if (isOnline) {
-      drain().catch(error => {
-        console.error('Sync drain failed:', error)
-      })
-    }
-  }, [isOnline])
+  // Sync drain triggering is owned by useSyncTriggers (feature 016): startup
+  // drain while online, immediate drain on connectivity restoration, and a
+  // periodic while-online cycle replace the old connectivity-flap-only
+  // trigger. The engine guards against overlapping runs.
 
   if (authenticated === null) {
     return (
